@@ -28,29 +28,48 @@ public partial class MyTicketsViewModel : BaseViewModel
         _main = main;
     }
 
-    public void Load()
+    public void Load() => _ = LoadAsync();
+
+    public async Task LoadAsync()
     {
         var user = _main.AccountVm.CurrentUser;
         if (user == null)
         {
             UpcomingTickets = new();
             PastTickets = new();
+            IsUpcomingEmpty = true;
             return;
         }
 
-        using var db = new CinemaDbContext();
-        var tickets = db.Tickets
-            .Where(t => t.UserId == user.Id)
-            .Include(t => t.Session).ThenInclude(s => s.Movie)
-            .Include(t => t.Session).ThenInclude(s => s.Hall)
-            .OrderByDescending(t => t.Session.StartTime)
-            .ToList();
+        IsBusy = true;
+        try
+        {
+            var userId = user.Id;
+            var now = DateTime.Now;
 
-        UpcomingTickets = new ObservableCollection<Ticket>(
-            tickets.Where(t => t.Session.StartTime >= DateTime.Now && t.Status == TicketStatus.Active));
-        PastTickets = new ObservableCollection<Ticket>(
-            tickets.Where(t => t.Session.StartTime < DateTime.Now || t.Status != TicketStatus.Active));
-        IsUpcomingEmpty = !UpcomingTickets.Any();
+            var (upcoming, past) = await Task.Run(() =>
+            {
+                using var db = new CinemaDbContext();
+                var tickets = db.Tickets
+                    .Where(t => t.UserId == userId)
+                    .Include(t => t.Session).ThenInclude(s => s.Movie)
+                    .Include(t => t.Session).ThenInclude(s => s.Hall)
+                    .OrderByDescending(t => t.Session.StartTime)
+                    .ToList();
+
+                var up = tickets.Where(t => t.Session.StartTime >= now && t.Status == TicketStatus.Active).ToList();
+                var past = tickets.Where(t => t.Session.StartTime < now || t.Status != TicketStatus.Active).ToList();
+                return (up, past);
+            });
+
+            UpcomingTickets = new ObservableCollection<Ticket>(upcoming);
+            PastTickets = new ObservableCollection<Ticket>(past);
+            IsUpcomingEmpty = !UpcomingTickets.Any();
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     [RelayCommand]
