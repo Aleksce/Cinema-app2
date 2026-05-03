@@ -3,6 +3,7 @@ using CinemaApp.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using System.Windows;
 
 namespace CinemaApp.ViewModels;
 
@@ -25,6 +26,9 @@ public partial class MoviesViewModel : BaseViewModel
     [ObservableProperty]
     private bool _isEmpty;
 
+    [ObservableProperty]
+    private string _syncStatus = string.Empty;
+
     public List<string> Genres { get; } = new()
     {
         "Все", "Боевик", "Драма", "Фантастика", "Ужасы", "Мультфильм", "Приключения", "Комедия"
@@ -35,15 +39,33 @@ public partial class MoviesViewModel : BaseViewModel
         _main = main;
     }
 
-    public void Load()
+    // Non-blocking async load — never freezes the UI
+    public async Task LoadAsync()
     {
         IsBusy = true;
-        using var db = new CinemaDbContext();
-        var list = db.Movies.Where(m => m.IsActive).OrderByDescending(m => m.ImdbRating).ToList();
-        Movies = new ObservableCollection<Movie>(list);
-        ApplyFilter();
-        IsBusy = false;
+        try
+        {
+            var list = await Task.Run(() =>
+            {
+                using var db = new CinemaDbContext();
+                return db.Movies
+                    .Where(m => m.IsActive)
+                    .OrderByDescending(m => m.ImdbRating)
+                    .ToList();
+            });
+
+            // Back on UI thread
+            Movies = new ObservableCollection<Movie>(list);
+            ApplyFilter();
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
+
+    // Called by NavigateTo — fire-and-forget, never blocks UI
+    public void Load() => _ = LoadAsync();
 
     partial void OnSearchTextChanged(string value) => ApplyFilter();
     partial void OnSelectedGenreChanged(string value) => ApplyFilter();
