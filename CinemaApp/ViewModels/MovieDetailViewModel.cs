@@ -2,6 +2,7 @@ using CinemaApp.Data;
 using CinemaApp.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 
 namespace CinemaApp.ViewModels;
