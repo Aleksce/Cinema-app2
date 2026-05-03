@@ -102,19 +102,17 @@
             </Grid>
         </Border>
 
-        <!-- ═══ MAIN CONTENT with fade animation ════════════════════ -->
+        <!-- ═══ MAIN CONTENT ════════════════════════════════════════ -->
         <Grid Grid.Row="1" x:Name="ContentGrid">
-            <ContentPresenter x:Name="MainContent" Content="{Binding CurrentViewModel}">
-                <ContentPresenter.Style>
-                    <Style TargetType="ContentPresenter">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding CurrentViewModel}" Value="{x:Null}">
-                                <Setter Property="Opacity" Value="0"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </ContentPresenter.Style>
-            </ContentPresenter>
+            <!--
+                ContentControl (NOT ContentPresenter) is used here intentionally.
+                ContentPresenter would replace its own DataContext with the Content value,
+                causing {Binding CurrentViewModel} inside its Style to look for that property
+                on each ViewModel (MyTicketsViewModel, etc.) and fail.
+                ContentControl keeps the Window's DataContext (MainViewModel) for its own
+                bindings while still applying the typed DataTemplates to its Content.
+            -->
+            <ContentControl Content="{Binding CurrentViewModel}"/>
         </Grid>
 
         <!-- ═══ BOTTOM NAVIGATION ════════════════════════════════════ -->
