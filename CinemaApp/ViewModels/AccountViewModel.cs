@@ -36,8 +36,6 @@ public partial class AccountViewModel : BaseViewModel
     [ObservableProperty]
     private bool _showRegister;
 
-    public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
-
     [ObservableProperty]
     private int _loyaltyProgress;
 
@@ -56,8 +54,6 @@ public partial class AccountViewModel : BaseViewModel
             CurrentUser = db.Users.Find(CurrentUser.Id) ?? CurrentUser;
         }
     }
-
-    partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
 
     [RelayCommand]
     private void Login()
