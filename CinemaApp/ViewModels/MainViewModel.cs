@@ -9,6 +9,8 @@ public enum AppPage
     MovieDetail,
     SeatPicker,
     MyTickets,
+    Schedule,
+    Promotions,
     Account
 }
 
@@ -24,6 +26,8 @@ public partial class MainViewModel : BaseViewModel
     public MovieDetailViewModel MovieDetailVm { get; }
     public SeatPickerViewModel SeatPickerVm { get; }
     public MyTicketsViewModel MyTicketsVm { get; }
+    public ScheduleViewModel ScheduleVm { get; }
+    public PromotionsViewModel PromotionsVm { get; }
     public AccountViewModel AccountVm { get; }
 
     public MainViewModel()
@@ -33,8 +37,10 @@ public partial class MainViewModel : BaseViewModel
         MovieDetailVm = new MovieDetailViewModel(this);
         SeatPickerVm = new SeatPickerViewModel(this);
         MyTicketsVm = new MyTicketsViewModel(this);
+        ScheduleVm = new ScheduleViewModel(this);
+        PromotionsVm = new PromotionsViewModel();
 
-        CurrentViewModel = MoviesVm;
+        NavigateTo(AppPage.Movies);
     }
 
     public void NavigateTo(AppPage page, object? parameter = null)
@@ -60,6 +66,13 @@ public partial class MainViewModel : BaseViewModel
                 MyTicketsVm.Load();
                 CurrentViewModel = MyTicketsVm;
                 break;
+            case AppPage.Schedule:
+                ScheduleVm.Load();
+                CurrentViewModel = ScheduleVm;
+                break;
+            case AppPage.Promotions:
+                CurrentViewModel = PromotionsVm;
+                break;
             case AppPage.Account:
                 AccountVm.Load();
                 CurrentViewModel = AccountVm;
@@ -71,7 +84,13 @@ public partial class MainViewModel : BaseViewModel
     private void GoToMovies() => NavigateTo(AppPage.Movies);
 
     [RelayCommand]
+    private void GoToSchedule() => NavigateTo(AppPage.Schedule);
+
+    [RelayCommand]
     private void GoToTickets() => NavigateTo(AppPage.MyTickets);
+
+    [RelayCommand]
+    private void GoToPromotions() => NavigateTo(AppPage.Promotions);
 
     [RelayCommand]
     private void GoToAccount() => NavigateTo(AppPage.Account);
