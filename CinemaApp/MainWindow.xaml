@@ -1,0 +1,153 @@
+<Window x:Class="CinemaApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:CinemaApp.ViewModels"
+        xmlns:views="clr-namespace:CinemaApp.Views"
+        Title="CinemaApp" Height="820" Width="1280" MinWidth="900" MinHeight="600"
+        Background="{StaticResource PrimaryBrush}"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.DataContext>
+        <vm:MainViewModel/>
+    </Window.DataContext>
+
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type vm:MoviesViewModel}">
+            <views:MoviesView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:MovieDetailViewModel}">
+            <views:MovieDetailView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SeatPickerViewModel}">
+            <views:SeatPickerView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:MyTicketsViewModel}">
+            <views:MyTicketsView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:AccountViewModel}">
+            <views:AccountView/>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="56"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="64"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top bar -->
+        <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <Grid Margin="24,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="&#9654;" Foreground="{StaticResource AccentBrush}" FontSize="18" VerticalAlignment="Center"/>
+                    <TextBlock Text=" CINEMA" Foreground="{StaticResource TextPrimaryBrush}"
+                               FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Grid.Column="1" Text="Бронирование кинобилетов" Foreground="{StaticResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13"/>
+                <TextBlock Grid.Column="2" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" VerticalAlignment="Center">
+                    <TextBlock.Text>
+                        <Binding Path="AccountVm.CurrentUser.FullName" FallbackValue="Не авторизован"/>
+                    </TextBlock.Text>
+                </TextBlock>
+            </Grid>
+        </Border>
+
+        <!-- Main content -->
+        <ContentPresenter Grid.Row="1" Content="{Binding CurrentViewModel}"/>
+
+        <!-- Bottom navigation -->
+        <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Афиша -->
+                <Button Grid.Column="0" Style="{StaticResource NavButtonStyle}"
+                        Command="{Binding GoToMoviesCommand}">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="&#9654;" FontSize="20" HorizontalAlignment="Center">
+                            <TextBlock.Foreground>
+                                <Binding Path="CurrentPage" Converter="{StaticResource NavColorConverter}" ConverterParameter="Movies"/>
+                            </TextBlock.Foreground>
+                        </TextBlock>
+                        <TextBlock Text="Афиша" FontSize="11" HorizontalAlignment="Center">
+                            <TextBlock.Foreground>
+                                <Binding Path="CurrentPage" Converter="{StaticResource NavColorConverter}" ConverterParameter="Movies"/>
+                            </TextBlock.Foreground>
+                        </TextBlock>
+                    </StackPanel>
+                </Button>
+
+                <!-- Расписание -->
+                <Button Grid.Column="1" Style="{StaticResource NavButtonStyle}"
+                        Command="{Binding GoToMoviesCommand}">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="&#128197;" FontSize="20" HorizontalAlignment="Center"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock Text="Расписание" FontSize="11" HorizontalAlignment="Center"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Мои билеты -->
+                <Button Grid.Column="2" Style="{StaticResource NavButtonStyle}"
+                        Command="{Binding GoToTicketsCommand}">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="&#127915;" FontSize="20" HorizontalAlignment="Center">
+                            <TextBlock.Foreground>
+                                <Binding Path="CurrentPage" Converter="{StaticResource NavColorConverter}" ConverterParameter="MyTickets"/>
+                            </TextBlock.Foreground>
+                        </TextBlock>
+                        <TextBlock Text="Билеты" FontSize="11" HorizontalAlignment="Center">
+                            <TextBlock.Foreground>
+                                <Binding Path="CurrentPage" Converter="{StaticResource NavColorConverter}" ConverterParameter="MyTickets"/>
+                            </TextBlock.Foreground>
+                        </TextBlock>
+                    </StackPanel>
+                </Button>
+
+                <!-- Акции -->
+                <Button Grid.Column="3" Style="{StaticResource NavButtonStyle}"
+                        Command="{Binding GoToMoviesCommand}">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="&#127881;" FontSize="20" HorizontalAlignment="Center"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock Text="Акции" FontSize="11" HorizontalAlignment="Center"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Профиль -->
+                <Button Grid.Column="4" Style="{StaticResource NavButtonStyle}"
+                        Command="{Binding GoToAccountCommand}">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="&#128100;" FontSize="20" HorizontalAlignment="Center">
+                            <TextBlock.Foreground>
+                                <Binding Path="CurrentPage" Converter="{StaticResource NavColorConverter}" ConverterParameter="Account"/>
+                            </TextBlock.Foreground>
+                        </TextBlock>
+                        <TextBlock Text="Профиль" FontSize="11" HorizontalAlignment="Center">
+                            <TextBlock.Foreground>
+                                <Binding Path="CurrentPage" Converter="{StaticResource NavColorConverter}" ConverterParameter="Account"/>
+                            </TextBlock.Foreground>
+                        </TextBlock>
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
