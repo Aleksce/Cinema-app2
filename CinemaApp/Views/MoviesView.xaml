@@ -1,0 +1,149 @@
+<UserControl x:Class="CinemaApp.Views.MoviesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:CinemaApp.Converters"
+             Background="{StaticResource PrimaryBrush}">
+    <UserControl.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolVis"/>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Search bar -->
+        <Border Grid.Row="0" Margin="20,16,20,8">
+            <TextBox Style="{StaticResource DarkTextBoxStyle}"
+                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                     FontSize="14">
+                <TextBox.Resources>
+                    <Style TargetType="TextBox" BasedOn="{StaticResource DarkTextBoxStyle}">
+                        <Style.Triggers>
+                            <Trigger Property="Text" Value="">
+                                <Setter Property="Background">
+                                    <Setter.Value>
+                                        <VisualBrush Stretch="None" AlignmentX="Left">
+                                            <VisualBrush.Visual>
+                                                <TextBlock Text="  Поиск фильмов..." Foreground="#9090A0" FontSize="14" Margin="12,10"/>
+                                            </VisualBrush.Visual>
+                                        </VisualBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBox.Resources>
+            </TextBox>
+        </Border>
+
+        <!-- Genre filters -->
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                      Margin="20,0,20,12">
+            <ItemsControl ItemsSource="{Binding Genres}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Content="{Binding}" Margin="0,0,8,0"
+                                Command="{Binding DataContext.SelectGenreCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource GhostButtonStyle}">
+                                    <Setter Property="Padding" Value="14,7"/>
+                                    <Setter Property="FontSize" Value="12"/>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Movie grid -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="20,0,20,20">
+                <!-- Section header -->
+                <TextBlock Text="Сейчас в кино" Foreground="{StaticResource TextPrimaryBrush}"
+                           FontSize="18" FontWeight="Bold" Margin="0,0,0,14"/>
+
+                <!-- Movie grid using WrapPanel -->
+                <ItemsControl ItemsSource="{Binding FilteredMovies}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Margin="0,0,16,16" Padding="0" BorderThickness="0" Background="Transparent"
+                                    Cursor="Hand"
+                                    Command="{Binding DataContext.SelectMovieCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{StaticResource CardBrush}" CornerRadius="10"
+                                                Width="185" ClipToBounds="True">
+                                            <Border.Effect>
+                                                <DropShadowEffect Color="#000000" BlurRadius="12" Opacity="0.4" ShadowDepth="4"/>
+                                            </Border.Effect>
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="270"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <!-- Poster -->
+                                                <Image Grid.Row="0" Stretch="UniformToFill"
+                                                       Source="{Binding PosterUrl}" ClipToBounds="True"/>
+
+                                                <!-- Age badge -->
+                                                <Border Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                        Margin="0,8,8,0" Background="#CC000000" CornerRadius="4" Padding="5,2">
+                                                    <TextBlock Text="{Binding AgeRating}" Foreground="White" FontSize="11" FontWeight="Bold"/>
+                                                </Border>
+
+                                                <!-- Info -->
+                                                <StackPanel Grid.Row="1" Margin="10,8,10,10">
+                                                    <TextBlock Text="{Binding Title}" Foreground="{StaticResource TextPrimaryBrush}"
+                                                               FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap"
+                                                               MaxHeight="36"/>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                                        <TextBlock Text="★" Foreground="{StaticResource GoldBrush}" FontSize="12"/>
+                                                        <TextBlock Text="{Binding ImdbRating, StringFormat=F1}"
+                                                                   Foreground="{StaticResource GoldBrush}" FontSize="12" Margin="3,0,0,0"/>
+                                                        <TextBlock Text=" · " Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
+                                                        <TextBlock Text="{Binding Genre}" Foreground="{StaticResource TextSecondaryBrush}"
+                                                                   FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="90"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Empty state -->
+                <StackPanel Visibility="{Binding IsEmpty, Converter={StaticResource BoolVis}}"
+                            HorizontalAlignment="Center" Margin="0,60,0,0">
+                    <TextBlock Text="Ничего не найдено" Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="16" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Loading overlay -->
+        <Border Grid.RowSpan="3" Background="#80000000"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
+            <TextBlock Text="Загрузка..." Foreground="White" FontSize="16"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Border>
+    </Grid>
+</UserControl>
