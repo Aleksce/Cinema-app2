@@ -37,16 +37,28 @@ public class CinemaDbContext : DbContext
         modelBuilder.Entity<Session>(e =>
         {
             e.HasKey(s => s.Id);
-            e.HasOne(s => s.Movie).WithMany(m => m.Sessions).HasForeignKey(s => s.MovieId);
-            e.HasOne(s => s.Hall).WithMany(h => h.Sessions).HasForeignKey(s => s.HallId);
+            e.HasOne(s => s.Movie)
+             .WithMany(m => m.Sessions)
+             .HasForeignKey(s => s.MovieId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.Hall)
+             .WithMany(h => h.Sessions)
+             .HasForeignKey(s => s.HallId)
+             .OnDelete(DeleteBehavior.NoAction);
             e.Property(s => s.BasePrice).HasColumnType("decimal(10,2)");
         });
 
         modelBuilder.Entity<Seat>(e =>
         {
             e.HasKey(s => s.Id);
-            e.HasOne(s => s.Hall).WithMany(h => h.Seats).HasForeignKey(s => s.HallId);
-            e.HasOne(s => s.Session).WithMany(s => s.Seats).HasForeignKey(s => s.SessionId);
+            e.HasOne(s => s.Hall)
+             .WithMany(h => h.Seats)
+             .HasForeignKey(s => s.HallId)
+             .OnDelete(DeleteBehavior.NoAction);
+            e.HasOne(s => s.Session)
+             .WithMany(s => s.Seats)
+             .HasForeignKey(s => s.SessionId)
+             .OnDelete(DeleteBehavior.Cascade);
             e.Property(s => s.PriceModifier).HasColumnType("decimal(5,2)");
         });
 
@@ -60,8 +72,14 @@ public class CinemaDbContext : DbContext
         modelBuilder.Entity<Ticket>(e =>
         {
             e.HasKey(t => t.Id);
-            e.HasOne(t => t.User).WithMany(u => u.Tickets).HasForeignKey(t => t.UserId);
-            e.HasOne(t => t.Session).WithMany(s => s.Tickets).HasForeignKey(t => t.SessionId);
+            e.HasOne(t => t.User)
+             .WithMany(u => u.Tickets)
+             .HasForeignKey(t => t.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(t => t.Session)
+             .WithMany(s => s.Tickets)
+             .HasForeignKey(t => t.SessionId)
+             .OnDelete(DeleteBehavior.NoAction);
             e.Property(t => t.Price).HasColumnType("decimal(10,2)");
         });
     }
