@@ -3,7 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:CinemaApp.ViewModels"
         xmlns:views="clr-namespace:CinemaApp.Views"
-        Title="CinemaApp" Height="820" Width="1280" MinWidth="900" MinHeight="600"
+        xmlns:conv="clr-namespace:CinemaApp.Converters"
+        Title="CINEMA — Бронирование билетов" Height="840" Width="1300"
+        MinWidth="960" MinHeight="640"
         Background="{StaticResource PrimaryBrush}"
         WindowStartupLocation="CenterScreen">
 
@@ -12,6 +14,9 @@
     </Window.DataContext>
 
     <Window.Resources>
+        <conv:NavColorConverter x:Key="NavColor"/>
+        <conv:BoolToVisibilityConverter x:Key="BoolVis"/>
+
         <DataTemplate DataType="{x:Type vm:MoviesViewModel}">
             <views:MoviesView/>
         </DataTemplate>
@@ -24,6 +29,12 @@
         <DataTemplate DataType="{x:Type vm:MyTicketsViewModel}">
             <views:MyTicketsView/>
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ScheduleViewModel}">
+            <views:ScheduleView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:PromotionsViewModel}">
+            <views:PromotionsView/>
+        </DataTemplate>
         <DataTemplate DataType="{x:Type vm:AccountViewModel}">
             <views:AccountView/>
         </DataTemplate>
@@ -31,39 +42,82 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="56"/>
+            <RowDefinition Height="58"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="64"/>
+            <RowDefinition Height="68"/>
         </Grid.RowDefinitions>
 
-        <!-- Top bar -->
+        <!-- ═══ TOP BAR ════════════════════════════════════════════ -->
         <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}"
                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
-            <Grid Margin="24,0">
+            <Grid Margin="28,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
+
+                <!-- Logo -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="&#9654;" Foreground="{StaticResource AccentBrush}" FontSize="18" VerticalAlignment="Center"/>
-                    <TextBlock Text=" CINEMA" Foreground="{StaticResource TextPrimaryBrush}"
-                               FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <Border Width="32" Height="32" CornerRadius="8" Background="{StaticResource AccentBrush}" Margin="0,0,10,0">
+                        <TextBlock Text="▶" Foreground="White" FontSize="14" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                    </Border>
+                    <TextBlock Text="CINEMA" Foreground="{StaticResource TextPrimaryBrush}"
+                               FontSize="20" FontWeight="Black" VerticalAlignment="Center" LetterSpacing="3"/>
                 </StackPanel>
-                <TextBlock Grid.Column="1" Text="Бронирование кинобилетов" Foreground="{StaticResource TextSecondaryBrush}"
+
+                <!-- Center subtitle -->
+                <TextBlock Grid.Column="1" Text="Онлайн-бронирование кинобилетов"
+                           Foreground="{StaticResource TextSecondaryBrush}"
                            HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13"/>
-                <TextBlock Grid.Column="2" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" VerticalAlignment="Center">
-                    <TextBlock.Text>
-                        <Binding Path="AccountVm.CurrentUser.FullName" FallbackValue="Не авторизован"/>
-                    </TextBlock.Text>
-                </TextBlock>
+
+                <!-- User info -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="Не авторизован"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding AccountVm.IsLoggedIn}" Value="True">
+                                        <Setter Property="Text" Value="{Binding AccountVm.CurrentUser.FullName}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <Ellipse Width="8" Height="8" Margin="8,0,0,0" VerticalAlignment="Center">
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Setter Property="Fill" Value="#555"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding AccountVm.IsLoggedIn}" Value="True">
+                                        <Setter Property="Fill" Value="#4CAF50"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+                </StackPanel>
             </Grid>
         </Border>
 
-        <!-- Main content -->
-        <ContentPresenter Grid.Row="1" Content="{Binding CurrentViewModel}"/>
+        <!-- ═══ MAIN CONTENT with fade animation ════════════════════ -->
+        <Grid Grid.Row="1" x:Name="ContentGrid">
+            <ContentPresenter x:Name="MainContent" Content="{Binding CurrentViewModel}">
+                <ContentPresenter.Style>
+                    <Style TargetType="ContentPresenter">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CurrentViewModel}" Value="{x:Null}">
+                                <Setter Property="Opacity" Value="0"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentPresenter.Style>
+            </ContentPresenter>
+        </Grid>
 
-        <!-- Bottom navigation -->
+        <!-- ═══ BOTTOM NAVIGATION ════════════════════════════════════ -->
         <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}"
                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
             <Grid>
@@ -78,74 +132,157 @@
                 <!-- Афиша -->
                 <Button Grid.Column="0" Style="{StaticResource NavButtonStyle}"
                         Command="{Binding GoToMoviesCommand}">
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="&#9654;" FontSize="20" HorizontalAlignment="Center">
-                            <TextBlock.Foreground>
-                                <Binding Path="CurrentPage" Converter="{StaticResource NavColorConverter}" ConverterParameter="Movies"/>
-                            </TextBlock.Foreground>
-                        </TextBlock>
-                        <TextBlock Text="Афиша" FontSize="11" HorizontalAlignment="Center">
-                            <TextBlock.Foreground>
-                                <Binding Path="CurrentPage" Converter="{StaticResource NavColorConverter}" ConverterParameter="Movies"/>
-                            </TextBlock.Foreground>
-                        </TextBlock>
-                    </StackPanel>
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="Transparent" Cursor="Hand">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="🎬" FontSize="22" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Афиша" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0">
+                                        <TextBlock.Foreground>
+                                            <Binding Path="CurrentPage" Converter="{StaticResource NavColor}" ConverterParameter="Movies"/>
+                                        </TextBlock.Foreground>
+                                    </TextBlock>
+                                    <!-- Active underline -->
+                                    <Border Height="2" Width="24" CornerRadius="1" Margin="0,3,0,0">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding CurrentPage}" Value="Movies">
+                                                        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
                 </Button>
 
                 <!-- Расписание -->
                 <Button Grid.Column="1" Style="{StaticResource NavButtonStyle}"
-                        Command="{Binding GoToMoviesCommand}">
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="&#128197;" FontSize="20" HorizontalAlignment="Center"
-                                   Foreground="{StaticResource TextSecondaryBrush}"/>
-                        <TextBlock Text="Расписание" FontSize="11" HorizontalAlignment="Center"
-                                   Foreground="{StaticResource TextSecondaryBrush}"/>
-                    </StackPanel>
+                        Command="{Binding GoToScheduleCommand}">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="Transparent" Cursor="Hand">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="📅" FontSize="22" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Расписание" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0">
+                                        <TextBlock.Foreground>
+                                            <Binding Path="CurrentPage" Converter="{StaticResource NavColor}" ConverterParameter="Schedule"/>
+                                        </TextBlock.Foreground>
+                                    </TextBlock>
+                                    <Border Height="2" Width="24" CornerRadius="1" Margin="0,3,0,0">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding CurrentPage}" Value="Schedule">
+                                                        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
                 </Button>
 
-                <!-- Мои билеты -->
+                <!-- Билеты -->
                 <Button Grid.Column="2" Style="{StaticResource NavButtonStyle}"
                         Command="{Binding GoToTicketsCommand}">
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="&#127915;" FontSize="20" HorizontalAlignment="Center">
-                            <TextBlock.Foreground>
-                                <Binding Path="CurrentPage" Converter="{StaticResource NavColorConverter}" ConverterParameter="MyTickets"/>
-                            </TextBlock.Foreground>
-                        </TextBlock>
-                        <TextBlock Text="Билеты" FontSize="11" HorizontalAlignment="Center">
-                            <TextBlock.Foreground>
-                                <Binding Path="CurrentPage" Converter="{StaticResource NavColorConverter}" ConverterParameter="MyTickets"/>
-                            </TextBlock.Foreground>
-                        </TextBlock>
-                    </StackPanel>
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="Transparent" Cursor="Hand">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="🎟" FontSize="22" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Билеты" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0">
+                                        <TextBlock.Foreground>
+                                            <Binding Path="CurrentPage" Converter="{StaticResource NavColor}" ConverterParameter="MyTickets"/>
+                                        </TextBlock.Foreground>
+                                    </TextBlock>
+                                    <Border Height="2" Width="24" CornerRadius="1" Margin="0,3,0,0">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding CurrentPage}" Value="MyTickets">
+                                                        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
                 </Button>
 
                 <!-- Акции -->
                 <Button Grid.Column="3" Style="{StaticResource NavButtonStyle}"
-                        Command="{Binding GoToMoviesCommand}">
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="&#127881;" FontSize="20" HorizontalAlignment="Center"
-                                   Foreground="{StaticResource TextSecondaryBrush}"/>
-                        <TextBlock Text="Акции" FontSize="11" HorizontalAlignment="Center"
-                                   Foreground="{StaticResource TextSecondaryBrush}"/>
-                    </StackPanel>
+                        Command="{Binding GoToPromotionsCommand}">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="Transparent" Cursor="Hand">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="🎁" FontSize="22" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Акции" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0">
+                                        <TextBlock.Foreground>
+                                            <Binding Path="CurrentPage" Converter="{StaticResource NavColor}" ConverterParameter="Promotions"/>
+                                        </TextBlock.Foreground>
+                                    </TextBlock>
+                                    <Border Height="2" Width="24" CornerRadius="1" Margin="0,3,0,0">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding CurrentPage}" Value="Promotions">
+                                                        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
                 </Button>
 
                 <!-- Профиль -->
                 <Button Grid.Column="4" Style="{StaticResource NavButtonStyle}"
                         Command="{Binding GoToAccountCommand}">
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="&#128100;" FontSize="20" HorizontalAlignment="Center">
-                            <TextBlock.Foreground>
-                                <Binding Path="CurrentPage" Converter="{StaticResource NavColorConverter}" ConverterParameter="Account"/>
-                            </TextBlock.Foreground>
-                        </TextBlock>
-                        <TextBlock Text="Профиль" FontSize="11" HorizontalAlignment="Center">
-                            <TextBlock.Foreground>
-                                <Binding Path="CurrentPage" Converter="{StaticResource NavColorConverter}" ConverterParameter="Account"/>
-                            </TextBlock.Foreground>
-                        </TextBlock>
-                    </StackPanel>
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="Transparent" Cursor="Hand">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="👤" FontSize="22" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Профиль" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0">
+                                        <TextBlock.Foreground>
+                                            <Binding Path="CurrentPage" Converter="{StaticResource NavColor}" ConverterParameter="Account"/>
+                                        </TextBlock.Foreground>
+                                    </TextBlock>
+                                    <Border Height="2" Width="24" CornerRadius="1" Margin="0,3,0,0">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding CurrentPage}" Value="Account">
+                                                        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
                 </Button>
             </Grid>
         </Border>
