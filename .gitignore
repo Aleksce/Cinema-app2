@@ -1,0 +1,27 @@
+# Build outputs
+bin/
+obj/
+*.user
+.vs/
+
+# NuGet
+*.nupkg
+packages/
+*.nuget.props
+*.nuget.targets
+
+# Visual Studio files
+.vscode/
+*.suo
+*.ncb
+*.sdf
+*.opensdf
+*.vcxproj.filters
+
+# Local database
+*.mdf
+*.ldf
+
+# Other
+Thumbs.db
+Desktop.ini
