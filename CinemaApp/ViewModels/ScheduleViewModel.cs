@@ -22,22 +22,38 @@ public partial class ScheduleViewModel : BaseViewModel
         _main = main;
     }
 
-    public void Load()
+    public void Load() => _ = LoadAsync();
+
+    public async Task LoadAsync()
     {
-        using var db = new CinemaDbContext();
-        var sessions = db.Sessions
-            .Where(s => s.IsActive && s.StartTime >= DateTime.Today && s.StartTime < DateTime.Today.AddDays(7))
-            .Include(s => s.Movie)
-            .Include(s => s.Hall)
-            .OrderBy(s => s.StartTime)
-            .ToList();
+        IsBusy = true;
+        try
+        {
+            var today = DateTime.Today;
+            var end = today.AddDays(7);
 
-        var grouped = sessions
-            .GroupBy(s => s.StartTime.Date)
-            .Select(g => new ScheduleDayGroup(g.Key, g.ToList()))
-            .ToList();
+            var grouped = await Task.Run(() =>
+            {
+                using var db = new CinemaDbContext();
+                var sessions = db.Sessions
+                    .Where(s => s.IsActive && s.StartTime >= today && s.StartTime < end)
+                    .Include(s => s.Movie)
+                    .Include(s => s.Hall)
+                    .OrderBy(s => s.StartTime)
+                    .ToList();
 
-        Days = new ObservableCollection<ScheduleDayGroup>(grouped);
+                return sessions
+                    .GroupBy(s => s.StartTime.Date)
+                    .Select(g => new ScheduleDayGroup(g.Key, g.ToList()))
+                    .ToList();
+            });
+
+            Days = new ObservableCollection<ScheduleDayGroup>(grouped);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     [RelayCommand]
