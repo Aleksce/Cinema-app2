@@ -1,5 +1,6 @@
 using CinemaApp.Data;
 using CinemaApp.Services;
+using CinemaApp.ViewModels;
 using System.Windows;
 
 namespace CinemaApp;
@@ -10,19 +11,39 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // 1. Initialize DB structure (halls, demo user)
+        // 1. Initialize DB structure synchronously (fast — just EnsureCreated + schema patches)
         using (var db = new CinemaDbContext())
         {
             DatabaseInitializer.Initialize(db);
         }
 
-        // 2. Sync movies from TMDB in background (non-blocking)
-        _ = Task.Run(async () =>
+        // 2. After window is shown, sync TMDB in background then refresh UI
+        Dispatcher.InvokeAsync(async () =>
         {
-            var progress = new Progress<string>(msg =>
-                System.Diagnostics.Debug.WriteLine($"[TMDB] {msg}"));
+            // Wait for MainWindow to fully render
+            await Task.Delay(500);
 
-            await MovieSyncService.SyncAsync(progress);
+            var progress = new Progress<string>(msg =>
+            {
+                // Update SyncStatus on MoviesVm so user sees progress
+                if (MainWindow?.DataContext is MainViewModel main)
+                    main.MoviesVm.SyncStatus = msg;
+
+                System.Diagnostics.Debug.WriteLine($"[TMDB] {msg}");
+            });
+
+            await Task.Run(() => MovieSyncService.SyncAsync(progress).GetAwaiter().GetResult());
+
+            // 3. Refresh movies list on UI thread after sync
+            if (MainWindow?.DataContext is MainViewModel mainVm)
+            {
+                mainVm.MoviesVm.SyncStatus = string.Empty;
+                await mainVm.MoviesVm.LoadAsync();
+
+                // Also refresh schedule if currently visible
+                if (mainVm.CurrentPage == AppPage.Schedule)
+                    mainVm.ScheduleVm.Load();
+            }
         });
     }
 }
