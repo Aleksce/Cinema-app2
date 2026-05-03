@@ -55,8 +55,6 @@
                         <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" Margin="10,0,0,0" VerticalAlignment="Center">
                             <Run Text="{Binding Movie.DurationMinutes}"/><Run Text=" мин"/>
                         </TextBlock>
-                        <TextBlock Text="{Binding Movie.Format, FallbackValue=2D}" Foreground="{StaticResource TextSecondaryBrush}"
-                                   FontSize="13" Margin="10,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
 
                     <!-- Rating -->
