@@ -1,10 +1,12 @@
 using CinemaApp.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace CinemaApp.Data;
 
 /// <summary>
 /// Creates DB structure on first launch: halls and demo user only.
 /// Movies are loaded via TMDB sync (MovieSyncService).
+/// Also applies incremental schema patches so old databases stay compatible.
 /// </summary>
 public static class DatabaseInitializer
 {
@@ -12,7 +14,10 @@ public static class DatabaseInitializer
     {
         context.Database.EnsureCreated();
 
-        // Halls
+        // ── Incremental schema patches ───────────────────────────────
+        ApplySchemaPatches(context);
+
+        // ── Halls ────────────────────────────────────────────────────
         if (!context.Halls.Any())
         {
             context.Halls.AddRange(
@@ -24,7 +29,7 @@ public static class DatabaseInitializer
             context.SaveChanges();
         }
 
-        // Demo user
+        // ── Demo user ────────────────────────────────────────────────
         if (!context.Users.Any())
         {
             context.Users.Add(new User
@@ -39,6 +44,35 @@ public static class DatabaseInitializer
             });
             context.SaveChanges();
         }
+    }
+
+    /// <summary>
+    /// Adds missing columns to existing databases without dropping them.
+    /// Each patch is idempotent — safe to run multiple times.
+    /// </summary>
+    private static void ApplySchemaPatches(CinemaDbContext context)
+    {
+        // Patch 1: TmdbId column on Movies table
+        context.Database.ExecuteSqlRaw("""
+            IF NOT EXISTS (
+                SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_NAME = 'Movies' AND COLUMN_NAME = 'TmdbId'
+            )
+            BEGIN
+                ALTER TABLE Movies ADD TmdbId INT NOT NULL DEFAULT 0;
+            END
+            """);
+
+        // Patch 2: OriginalTitle column on Movies table
+        context.Database.ExecuteSqlRaw("""
+            IF NOT EXISTS (
+                SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_NAME = 'Movies' AND COLUMN_NAME = 'OriginalTitle'
+            )
+            BEGIN
+                ALTER TABLE Movies ADD OriginalTitle NVARCHAR(MAX) NOT NULL DEFAULT '';
+            END
+            """);
     }
 
     public static string HashPassword(string password) =>
