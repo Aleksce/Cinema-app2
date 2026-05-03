@@ -173,9 +173,10 @@
                     <TextBlock Text="Email" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"/>
                     <TextBox Style="{StaticResource DarkTextBoxStyle}"
                              Text="{Binding RegisterEmail, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4"/>
-                    <TextBlock Style="{StaticResource HintTextStyle}" Margin="0,0,0,8">
+                    <TextBlock Margin="4,3,0,8">
                         <TextBlock.Style>
-                            <Style TargetType="TextBlock" BasedOn="{StaticResource HintTextStyle}">
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontSize" Value="11"/>
                                 <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
                                 <Setter Property="Text" Value="{Binding EmailHint}"/>
                                 <Style.Triggers>
@@ -191,9 +192,10 @@
                     <TextBlock Text="Телефон" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"/>
                     <TextBox Style="{StaticResource DarkTextBoxStyle}"
                              Text="{Binding RegisterPhone, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4"/>
-                    <TextBlock Style="{StaticResource HintTextStyle}" Margin="0,0,0,8">
+                    <TextBlock Margin="4,3,0,8">
                         <TextBlock.Style>
-                            <Style TargetType="TextBlock" BasedOn="{StaticResource HintTextStyle}">
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontSize" Value="11"/>
                                 <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
                                 <Setter Property="Text" Value="{Binding PhoneHint}"/>
                                 <Style.Triggers>
@@ -209,9 +211,10 @@
                     <TextBlock Text="Пароль" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"/>
                     <PasswordBox x:Name="RegPasswordBox" Style="{StaticResource DarkPasswordBoxStyle}" Margin="0,0,0,4"
                                  PasswordChanged="RegPasswordBox_PasswordChanged"/>
-                    <TextBlock Style="{StaticResource HintTextStyle}" Margin="0,0,0,16">
+                    <TextBlock Margin="4,3,0,16">
                         <TextBlock.Style>
-                            <Style TargetType="TextBlock" BasedOn="{StaticResource HintTextStyle}">
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontSize" Value="11"/>
                                 <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
                                 <Setter Property="Text" Value="{Binding PasswordHint}"/>
                                 <Style.Triggers>
