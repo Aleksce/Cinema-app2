@@ -139,11 +139,21 @@
             </StackPanel>
         </ScrollViewer>
 
-        <!-- Loading overlay -->
-        <Border Grid.RowSpan="3" Background="#80000000"
+        <!-- Sync status bar (non-blocking — sits at bottom, doesn't eat clicks) -->
+        <Border Grid.Row="2" VerticalAlignment="Bottom" Background="#CC1A1A2E" Padding="16,8"
+                Visibility="{Binding SyncStatus, Converter={StaticResource BoolVis}, FallbackValue=Collapsed}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="⟳ " Foreground="{StaticResource AccentBrush}" FontSize="14" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding SyncStatus}" Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="12" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Loading spinner (only briefly while reading DB — doesn't block nav buttons) -->
+        <Border Grid.Row="2" Background="#CC101018" VerticalAlignment="Center" HorizontalAlignment="Center"
+                CornerRadius="12" Padding="24,14"
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
-            <TextBlock Text="Загрузка..." Foreground="White" FontSize="16"
-                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <TextBlock Text="Загрузка..." Foreground="White" FontSize="14"/>
         </Border>
     </Grid>
 </UserControl>
