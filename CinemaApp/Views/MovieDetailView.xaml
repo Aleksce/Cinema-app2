@@ -6,17 +6,15 @@
     <UserControl.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolVis"/>
 
-        <!-- Hover animation style for session cards -->
-        <Style x:Key="SessionCardButtonStyle" TargetType="Button">
+        <!-- Session card hover -->
+        <Style x:Key="SessionCardStyle" TargetType="Button">
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
             <Setter Property="RenderTransform">
-                <Setter.Value>
-                    <ScaleTransform ScaleX="1" ScaleY="1"/>
-                </Setter.Value>
+                <Setter.Value><ScaleTransform ScaleX="1" ScaleY="1"/></Setter.Value>
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
@@ -24,9 +22,9 @@
                         <BeginStoryboard>
                             <Storyboard>
                                 <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX"
-                                                 To="1.04" Duration="0:0:0.12"/>
+                                                 To="1.05" Duration="0:0:0.12"/>
                                 <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
-                                                 To="1.04" Duration="0:0:0.12"/>
+                                                 To="1.05" Duration="0:0:0.12"/>
                             </Storyboard>
                         </BeginStoryboard>
                     </Trigger.EnterActions>
@@ -43,14 +41,6 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-
-        <!-- Cast card hover -->
-        <Style x:Key="CastCardStyle" TargetType="Border">
-            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
-            <Setter Property="RenderTransform">
-                <Setter.Value><ScaleTransform/></Setter.Value>
-            </Setter>
-        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -59,7 +49,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Top bar: back + trailer -->
+        <!-- Top bar -->
         <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}"
                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,10">
             <Grid>
@@ -68,11 +58,11 @@
                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                     <Button Style="{StaticResource GhostButtonStyle}" Margin="0,0,8,0"
                             Command="{Binding GoToScheduleCommand}" Content="📅 Расписание →"/>
+                    <!-- Trailer button — bound to HasTrailer observable property -->
                     <Button Visibility="{Binding HasTrailer, Converter={StaticResource BoolVis}}"
                             Command="{Binding WatchTrailerCommand}"
                             Cursor="Hand" Padding="0" BorderThickness="0" Background="Transparent">
-                        <Border Background="{StaticResource AccentBrush}" CornerRadius="8"
-                                Padding="14,7">
+                        <Border Background="{StaticResource AccentBrush}" CornerRadius="8" Padding="14,7">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="▶  " Foreground="White" FontSize="12" VerticalAlignment="Center"/>
                                 <TextBlock Text="Смотреть трейлер" Foreground="White"
@@ -87,22 +77,21 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel>
 
-                <!-- ═══ HERO BACKDROP ═══════════════════════════════════ -->
+                <!-- ═══ HERO BACKDROP — binds to ViewModel.BackdropUrl (observable) ═══ -->
                 <Grid Height="240">
-                    <!-- Backdrop image -->
-                    <Image Source="{Binding Movie.BackdropUrl}" Stretch="UniformToFill"
-                           VerticalAlignment="Center" Opacity="0.7"/>
-                    <!-- Gradient overlay bottom -->
+                    <Image Source="{Binding BackdropUrl}" Stretch="UniformToFill"
+                           VerticalAlignment="Center" Opacity="0.72"/>
+                    <!-- Gradient overlay -->
                     <Border>
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                                 <GradientStop Color="#00101018" Offset="0"/>
-                                <GradientStop Color="#CC101018" Offset="0.7"/>
+                                <GradientStop Color="#BB101018" Offset="0.65"/>
                                 <GradientStop Color="#FF101018" Offset="1"/>
                             </LinearGradientBrush>
                         </Border.Background>
                     </Border>
-                    <!-- Poster + title overlay -->
+                    <!-- Poster + title floating -->
                     <Grid Margin="24,0,24,0" VerticalAlignment="Bottom">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="140"/>
@@ -111,16 +100,15 @@
                         <Border Grid.Column="0" CornerRadius="10" ClipToBounds="True"
                                 Height="200" VerticalAlignment="Bottom" Margin="0,0,0,-30">
                             <Border.Effect>
-                                <DropShadowEffect Color="#000" BlurRadius="20" Opacity="0.6" ShadowDepth="6"/>
+                                <DropShadowEffect Color="#000" BlurRadius="20" Opacity="0.7" ShadowDepth="6"/>
                             </Border.Effect>
                             <Image Source="{Binding Movie.PosterUrl}" Stretch="UniformToFill"/>
                         </Border>
                         <StackPanel Grid.Column="1" Margin="16,0,0,8" VerticalAlignment="Bottom">
-                            <TextBlock Text="{Binding Movie.Title}"
-                                       Foreground="White" FontSize="24" FontWeight="Black"
-                                       TextWrapping="Wrap">
+                            <TextBlock Text="{Binding Movie.Title}" Foreground="White"
+                                       FontSize="24" FontWeight="Black" TextWrapping="Wrap">
                                 <TextBlock.Effect>
-                                    <DropShadowEffect Color="#000" BlurRadius="8" Opacity="0.8" ShadowDepth="2"/>
+                                    <DropShadowEffect Color="#000" BlurRadius="8" Opacity="0.9" ShadowDepth="2"/>
                                 </TextBlock.Effect>
                             </TextBlock>
                             <TextBlock Text="{Binding Movie.OriginalTitle}"
@@ -132,7 +120,8 @@
                                 </Border>
                                 <TextBlock Text="{Binding Movie.Year}" Foreground="#BBCDD0E0"
                                            FontSize="12" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                                <TextBlock Foreground="#BBCDD0E0" FontSize="12" Margin="8,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Foreground="#BBCDD0E0" FontSize="12" Margin="8,0,0,0"
+                                           VerticalAlignment="Center">
                                     <Run Text="{Binding Movie.DurationMinutes}"/><Run Text=" мин"/>
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center">
@@ -149,7 +138,7 @@
                 <!-- ═══ BODY ══════════════════════════════════════════════ -->
                 <StackPanel Margin="24,36,24,0">
 
-                    <!-- Genre + "Выбрать сеанс" row -->
+                    <!-- Genre row + "Выбрать сеанс" button -->
                     <Grid Margin="0,0,0,16">
                         <TextBlock Text="{Binding Movie.Genre}"
                                    Foreground="{StaticResource TextSecondaryBrush}"
@@ -157,15 +146,16 @@
                         <Button HorizontalAlignment="Right" Cursor="Hand"
                                 Padding="0" BorderThickness="0" Background="Transparent"
                                 Command="{Binding GoToScheduleCommand}">
-                            <Border Background="{StaticResource AccentBrush}" CornerRadius="8" Padding="18,9">
+                            <Border Background="{StaticResource AccentBrush}" CornerRadius="8" Padding="20,10">
                                 <TextBlock Text="Выбрать сеанс" Foreground="White"
-                                           FontSize="13" FontWeight="SemiBold"/>
+                                           FontSize="13" FontWeight="Bold"/>
                             </Border>
                         </Button>
                     </Grid>
 
-                    <!-- Director + Cast row -->
-                    <Border Background="{StaticResource CardBrush}" CornerRadius="12" Padding="16,14" Margin="0,0,0,16">
+                    <!-- Director + Cast info card -->
+                    <Border Background="{StaticResource CardBrush}" CornerRadius="12"
+                            Padding="16,14" Margin="0,0,0,16">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -174,15 +164,17 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="Режиссёр"
-                                       Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"
-                                       VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="11" VerticalAlignment="Center" Margin="0,0,12,0"/>
                             <TextBlock Grid.Column="1" Text="{Binding Movie.Director}"
-                                       Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"
-                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       FontSize="13" VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"/>
                             <Rectangle Grid.Column="2" Width="1" Fill="{StaticResource BorderBrush}"
                                        Margin="16,0"/>
                             <StackPanel Grid.Column="3">
-                                <TextBlock Text="В ролях" Foreground="{StaticResource TextSecondaryBrush}"
+                                <TextBlock Text="В ролях"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
                                            FontSize="11" Margin="0,0,0,2"/>
                                 <TextBlock Text="{Binding Movie.Cast}"
                                            Foreground="{StaticResource TextPrimaryBrush}"
@@ -191,10 +183,32 @@
                         </Grid>
                     </Border>
 
-                    <!-- ═══ CAST WITH PHOTOS ════════════════════════════ -->
-                    <TextBlock Text="В главных ролях" Foreground="{StaticResource TextPrimaryBrush}"
-                               FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12"
-                               Visibility="{Binding CastMembers.Count, Converter={StaticResource BoolVis}, FallbackValue=Collapsed}"/>
+                    <!-- ═══ CAST PHOTOS (observable CastMembers) ════════ -->
+                    <TextBlock Text="В главных ролях"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CastMembers.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <!-- Loading cast indicator -->
+                    <Border Margin="0,0,0,12" HorizontalAlignment="Left"
+                            Visibility="{Binding IsLoadingCast, Converter={StaticResource BoolVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⟳ Загрузка данных о фильме..."
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="12"/>
+                        </StackPanel>
+                    </Border>
+
                     <ScrollViewer HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Disabled" Margin="0,0,0,20">
                         <ItemsControl ItemsSource="{Binding CastMembers}">
@@ -205,14 +219,14 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Width="90" Margin="0,0,12,0" Cursor="Hand">
+                                    <Border Width="92" Margin="0,0,14,0" Cursor="Hand">
                                         <StackPanel>
                                             <!-- Circular photo -->
-                                            <Border Width="70" Height="70" CornerRadius="35"
+                                            <Border Width="72" Height="72" CornerRadius="36"
                                                     ClipToBounds="True" HorizontalAlignment="Center">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
-                                                        <Setter Property="Background" Value="#2A2A3A"/>
+                                                        <Setter Property="Background" Value="#252535"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding HasPhoto}" Value="True">
                                                                 <Setter Property="Background" Value="Transparent"/>
@@ -221,8 +235,7 @@
                                                     </Style>
                                                 </Border.Style>
                                                 <Grid>
-                                                    <!-- Fallback avatar icon -->
-                                                    <TextBlock Text="👤" FontSize="28"
+                                                    <TextBlock Text="👤" FontSize="30"
                                                                HorizontalAlignment="Center"
                                                                VerticalAlignment="Center">
                                                         <TextBlock.Style>
@@ -254,11 +267,11 @@
                                                        Foreground="{StaticResource TextPrimaryBrush}"
                                                        FontSize="11" FontWeight="SemiBold"
                                                        TextWrapping="Wrap" TextAlignment="Center"
-                                                       Margin="0,6,0,2" MaxWidth="86"/>
+                                                       Margin="0,7,0,2" MaxWidth="88"/>
                                             <TextBlock Text="{Binding Character}"
                                                        Foreground="{StaticResource TextSecondaryBrush}"
                                                        FontSize="10" TextWrapping="Wrap"
-                                                       TextAlignment="Center" MaxWidth="86"/>
+                                                       TextAlignment="Center" MaxWidth="88"/>
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
@@ -266,7 +279,7 @@
                         </ItemsControl>
                     </ScrollViewer>
 
-                    <!-- ═══ DESCRIPTION ═════════════════════════════════ -->
+                    <!-- ═══ DESCRIPTION ══════════════════════════════════ -->
                     <TextBlock Text="О фильме" Foreground="{StaticResource TextPrimaryBrush}"
                                FontSize="15" FontWeight="SemiBold" Margin="0,0,0,8"/>
                     <TextBlock Text="{Binding Movie.Description}"
@@ -282,23 +295,28 @@
                                   VerticalScrollBarVisibility="Disabled" Margin="0,0,0,8">
                         <ItemsControl ItemsSource="{Binding TodaySessions}">
                             <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Button Margin="0,0,10,0" Padding="0"
-                                            Style="{StaticResource SessionCardButtonStyle}"
-                                            Command="{Binding DataContext.SelectSessionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            Style="{StaticResource SessionCardStyle}"
+                                            Command="{Binding DataContext.SelectSessionCommand,
+                                                RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding}">
                                         <Border Background="{StaticResource CardBrush}" CornerRadius="10"
-                                                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                                                Padding="18,12">
+                                                BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1" Padding="18,12">
                                             <StackPanel MinWidth="90">
                                                 <TextBlock Text="{Binding StartTime, StringFormat=HH:mm}"
                                                            Foreground="{StaticResource TextPrimaryBrush}"
-                                                           FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
-                                                <Border Background="{StaticResource AccentBrush}" CornerRadius="4"
-                                                        Padding="6,2" Margin="0,4,0,0" HorizontalAlignment="Center">
+                                                           FontSize="18" FontWeight="Bold"
+                                                           HorizontalAlignment="Center"/>
+                                                <Border Background="{StaticResource AccentBrush}"
+                                                        CornerRadius="4" Padding="6,2"
+                                                        Margin="0,4,0,0" HorizontalAlignment="Center">
                                                     <TextBlock Text="{Binding Format}" Foreground="White"
                                                                FontSize="10" FontWeight="Bold"/>
                                                 </Border>
@@ -320,10 +338,10 @@
                         </ItemsControl>
                     </ScrollViewer>
 
-                    <!-- No sessions message -->
+                    <!-- No sessions -->
                     <Border Visibility="{Binding HasNoTodaySessions, Converter={StaticResource BoolVis}}"
-                            Background="{StaticResource CardBrush}" CornerRadius="10" Padding="20,14"
-                            Margin="0,0,0,8">
+                            Background="{StaticResource CardBrush}" CornerRadius="10"
+                            Padding="20,14" Margin="0,0,0,8">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="ℹ " Foreground="{StaticResource AccentBrush}" FontSize="14"/>
                             <StackPanel>
@@ -331,21 +349,18 @@
                                            Foreground="{StaticResource TextPrimaryBrush}"
                                            FontSize="13" FontWeight="SemiBold"/>
                                 <TextBlock Text="Перейдите в Расписание, чтобы выбрать другую дату"
-                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"
-                                           Margin="0,3,0,0"/>
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           FontSize="12" Margin="0,3,0,0"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
 
-                    <Button Margin="0,4,0,24" Padding="0" BorderThickness="0" Background="Transparent"
-                            HorizontalAlignment="Left" Cursor="Hand"
-                            Command="{Binding GoToScheduleCommand}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Все сеансы этого фильма →"
-                                       Foreground="{StaticResource AccentBrush}" FontSize="13"/>
-                        </StackPanel>
+                    <Button Margin="0,4,0,30" Padding="0" BorderThickness="0"
+                            Background="Transparent" HorizontalAlignment="Left"
+                            Cursor="Hand" Command="{Binding GoToScheduleCommand}">
+                        <TextBlock Text="Все сеансы этого фильма →"
+                                   Foreground="{StaticResource AccentBrush}" FontSize="13"/>
                     </Button>
-
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>
