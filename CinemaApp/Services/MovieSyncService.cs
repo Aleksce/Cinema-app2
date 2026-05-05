@@ -6,7 +6,7 @@ namespace CinemaApp.Services;
 
 public static class MovieSyncService
 {
-    private static readonly string[] SessionTimes = { "10:00", "12:30", "15:00", "17:30", "20:00", "22:30" };
+    private static readonly string[] SessionTimes = { "10:00", "13:00", "16:00", "19:00", "21:30" };
     private static readonly Random Rng = new(Environment.TickCount);
 
     public static async Task SyncAsync(IProgress<string>? progress = null)
@@ -19,9 +19,8 @@ public static class MovieSyncService
         try
         {
             var nowPlaying = await tmdb.GetNowPlayingAsync(pages: 3);
-            var upcoming = await tmdb.GetUpcomingAsync(pages: 2);
+            var upcoming   = await tmdb.GetUpcomingAsync(pages: 2);
 
-            // Merge, deduplicate by TMDB id
             items = nowPlaying
                 .Concat(upcoming)
                 .GroupBy(m => m.Id)
@@ -47,50 +46,45 @@ public static class MovieSyncService
         {
             progress?.Report($"Обработка: {item.Title}...");
 
-            // Fetch full details (credits, videos, runtime)
             TmdbMovieDetails? details = null;
             try { details = await tmdb.GetDetailsAsync(item.Id); }
-            catch { /* skip details, use basic info */ }
+            catch { }
 
             var existingMovie = db.Movies.FirstOrDefault(m => m.TmdbId == item.Id);
 
             if (existingMovie == null)
             {
-                // New movie — add to DB
                 var movie = new Movie
                 {
-                    TmdbId = item.Id,
-                    Title = item.Title,
+                    TmdbId        = item.Id,
+                    Title         = item.Title,
                     OriginalTitle = item.OriginalTitle,
-                    Description = details?.Overview ?? item.Overview,
-                    Genre = details != null
-                        ? string.Join(", ", details.Genres.Take(3).Select(g => g.Name))
-                        : "Разное",
-                    Director = details != null ? tmdb.GetDirector(details) ?? "" : "",
-                    Cast = details != null ? tmdb.GetCast(details) : "",
+                    Description   = details?.Overview ?? item.Overview,
+                    Genre         = details != null
+                                        ? string.Join(", ", details.Genres.Take(3).Select(g => g.Name))
+                                        : "Разное",
+                    Director      = details != null ? tmdb.GetDirector(details) ?? "" : "",
+                    Cast          = details != null ? tmdb.GetCast(details) : "",
                     DurationMinutes = details?.Runtime ?? 110,
-                    Year = ParseYear(item.ReleaseDate),
-                    AgeRating = tmdb.GetAgeRating(item.Adult),
-                    ImdbRating = Math.Round(item.VoteAverage, 1),
-                    ReleaseDate = ParseDate(item.ReleaseDate),
-                    PosterUrl = item.PosterPath != null
-                        ? TmdbService.PosterBase + item.PosterPath
-                        : string.Empty,
-                    TrailerUrl = details != null ? tmdb.GetTrailerUrl(details) ?? "" : "",
-                    IsActive = true
+                    Year          = ParseYear(item.ReleaseDate),
+                    AgeRating     = tmdb.GetAgeRating(item.Adult),
+                    ImdbRating    = Math.Round(item.VoteAverage, 1),
+                    ReleaseDate   = ParseDate(item.ReleaseDate),
+                    PosterUrl     = item.PosterPath != null ? TmdbService.PosterBase + item.PosterPath : "",
+                    TrailerUrl    = details != null ? tmdb.GetTrailerUrl(details) ?? "" : "",
+                    IsActive      = true
                 };
                 db.Movies.Add(movie);
                 db.SaveChanges();
 
-                // Generate sessions for next 7 days
+                // Generate ONLY Session rows — NO seats yet (lazy seat generation in SeatPicker)
                 GenerateSessions(db, movie, halls);
                 added++;
             }
             else
             {
-                // Update rating, poster and mark active
                 existingMovie.ImdbRating = Math.Round(item.VoteAverage, 1);
-                existingMovie.IsActive = true;
+                existingMovie.IsActive   = true;
                 if (item.PosterPath != null)
                     existingMovie.PosterUrl = TmdbService.PosterBase + item.PosterPath;
                 if (details != null && string.IsNullOrEmpty(existingMovie.TrailerUrl))
@@ -101,64 +95,96 @@ public static class MovieSyncService
 
         db.SaveChanges();
 
-        // ── Clean up ────────────────────────────────────────────────
+        // Clean up using raw SQL — avoids loading 75 000 seat rows into memory
         CleanupExpiredSessions(db);
         DeactivateMoviesWithNoFutureSessions(db, items.Select(i => i.Id).ToHashSet());
 
         progress?.Report($"Синхронизация завершена: добавлено {added}, обновлено {updated}");
     }
 
+    // ── Session generation (no seats) ──────────────────────────────
     private static void GenerateSessions(CinemaDbContext db, Movie movie, List<Hall> halls)
     {
         var today = DateTime.Today;
-        var sessions = new List<Session>();
 
         for (int day = 0; day < 7; day++)
         {
             var date = today.AddDays(day);
-            // 2-4 sessions per day
+
+            // 2–3 sessions per day
             var timesForDay = SessionTimes
                 .OrderBy(_ => Rng.Next())
-                .Take(Rng.Next(2, 5))
+                .Take(Rng.Next(2, 4))
                 .OrderBy(t => t)
                 .ToList();
 
             foreach (var timeStr in timesForDay)
             {
                 var parts = timeStr.Split(':');
-                var startTime = date.AddHours(int.Parse(parts[0])).AddMinutes(int.Parse(parts[1]));
-                var hall = halls[Rng.Next(halls.Count)];
-                var format = Rng.Next(3) switch { 0 => "IMAX", 1 => "3D", _ => "2D" };
+                var start = date.AddHours(int.Parse(parts[0])).AddMinutes(int.Parse(parts[1]));
+                var hall  = halls[Rng.Next(halls.Count)];
+                var fmt   = Rng.Next(3) switch { 0 => "IMAX", 1 => "3D", _ => "2D" };
                 var price = 300m + Rng.Next(0, 6) * 50m;
 
-                sessions.Add(new Session
+                db.Sessions.Add(new Session
                 {
-                    Movie = movie,
-                    Hall = hall,
-                    StartTime = startTime,
-                    EndTime = startTime.AddMinutes(movie.DurationMinutes + 20),
-                    Format = format,
+                    Movie     = movie,
+                    Hall      = hall,
+                    StartTime = start,
+                    EndTime   = start.AddMinutes(movie.DurationMinutes + 20),
+                    Format    = fmt,
                     BasePrice = price,
-                    IsActive = true
+                    IsActive  = true
                 });
             }
-        }
-
-        // Generate seats for each session
-        foreach (var session in sessions)
-        {
-            db.Sessions.Add(session);
-            db.SaveChanges(); // Save to get Session.Id
-
-            GenerateSeats(db, session);
         }
 
         db.SaveChanges();
     }
 
-    private static void GenerateSeats(CinemaDbContext db, Session session)
+    // ── Cleanup via raw SQL — never loads seat rows into memory ─────
+    private static void CleanupExpiredSessions(CinemaDbContext db)
     {
-        const string rows = "ABCDEFGHIJKLM";
+        // Step 1: delete seats for expired sessions that have no tickets
+        db.Database.ExecuteSqlRaw("""
+            DELETE FROM Seats
+            WHERE SessionId IN (
+                SELECT s.Id FROM Sessions s
+                WHERE s.EndTime < DATEADD(HOUR, -24, GETDATE())
+                AND NOT EXISTS (SELECT 1 FROM Tickets t WHERE t.SessionId = s.Id)
+            )
+            """);
+
+        // Step 2: delete those expired sessions themselves
+        db.Database.ExecuteSqlRaw("""
+            DELETE FROM Sessions
+            WHERE EndTime < DATEADD(HOUR, -24, GETDATE())
+            AND NOT EXISTS (SELECT 1 FROM Tickets t WHERE t.SessionId = Sessions.Id)
+            """);
+    }
+
+    // ── Deactivate movies no longer in TMDB that have no future sessions ─
+    private static void DeactivateMoviesWithNoFutureSessions(CinemaDbContext db, HashSet<int> activeTmdbIds)
+    {
+        var now = DateTime.Now;
+        var activeMovies = db.Movies.Where(m => m.IsActive).ToList();
+
+        foreach (var movie in activeMovies)
+        {
+            if (movie.TmdbId > 0 && activeTmdbIds.Contains(movie.TmdbId)) continue;
+            var hasFuture = db.Sessions.Any(s => s.MovieId == movie.Id && s.StartTime > now);
+            if (!hasFuture) movie.IsActive = false;
+        }
+
+        db.SaveChanges();
+    }
+
+    // ── Public helper — called by SeatPickerViewModel on demand ─────
+    public static void EnsureSeatsExist(CinemaDbContext db, Session session)
+    {
+        if (db.Seats.Any(s => s.SessionId == session.Id)) return;
+
+        const string rowLetters = "ABCDEFGHIJKLM";
         var seats = new List<Seat>();
 
         for (int r = 0; r < session.Hall.TotalRows; r++)
@@ -171,13 +197,13 @@ public static class MovieSyncService
 
                 seats.Add(new Seat
                 {
-                    HallId = session.Hall.Id,
-                    SessionId = session.Id,
-                    Row = rows[r].ToString(),
-                    Number = n,
-                    Status = Rng.Next(7) == 0 ? SeatStatus.Occupied : SeatStatus.Available,
-                    Type = type,
-                    PriceModifier = type == SeatType.VIP ? 1.8m
+                    HallId        = session.Hall.Id,
+                    SessionId     = session.Id,
+                    Row           = rowLetters[r].ToString(),
+                    Number        = n,
+                    Status        = Rng.Next(10) == 0 ? SeatStatus.Occupied : SeatStatus.Available,
+                    Type          = type,
+                    PriceModifier = type == SeatType.VIP  ? 1.8m
                                   : type == SeatType.Sofa ? 1.4m
                                   : 1.0m
                 });
@@ -185,60 +211,12 @@ public static class MovieSyncService
         }
 
         db.Seats.AddRange(seats);
-    }
-
-    private static void CleanupExpiredSessions(CinemaDbContext db)
-    {
-        var cutoff = DateTime.Now.AddHours(-24);
-        var expired = db.Sessions
-            .Where(s => s.EndTime < cutoff)
-            .Include(s => s.Seats)
-            .ToList();
-
-        foreach (var session in expired)
-        {
-            // Only delete if no tickets were sold for this session
-            var hasTickets = db.Tickets.Any(t => t.SessionId == session.Id);
-            if (!hasTickets)
-            {
-                db.Seats.RemoveRange(session.Seats);
-                db.Sessions.Remove(session);
-            }
-        }
-
         db.SaveChanges();
     }
 
-    private static void DeactivateMoviesWithNoFutureSessions(CinemaDbContext db, HashSet<int> activeTmdbIds)
-    {
-        var now = DateTime.Now;
-        var activeMovies = db.Movies.Where(m => m.IsActive).ToList();
+    private static int ParseYear(string date) =>
+        DateTime.TryParse(date, out var d) ? d.Year : DateTime.Today.Year;
 
-        foreach (var movie in activeMovies)
-        {
-            // Skip if still in TMDB now-playing/upcoming list
-            if (movie.TmdbId > 0 && activeTmdbIds.Contains(movie.TmdbId)) continue;
-
-            // Check if there are any future sessions
-            var hasFutureSessions = db.Sessions.Any(s => s.MovieId == movie.Id && s.StartTime > now);
-            if (!hasFutureSessions)
-            {
-                movie.IsActive = false;
-            }
-        }
-
-        db.SaveChanges();
-    }
-
-    private static int ParseYear(string date)
-    {
-        if (DateTime.TryParse(date, out var d)) return d.Year;
-        return DateTime.Today.Year;
-    }
-
-    private static DateTime ParseDate(string date)
-    {
-        if (DateTime.TryParse(date, out var d)) return d;
-        return DateTime.Today;
-    }
+    private static DateTime ParseDate(string date) =>
+        DateTime.TryParse(date, out var d) ? d : DateTime.Today;
 }
