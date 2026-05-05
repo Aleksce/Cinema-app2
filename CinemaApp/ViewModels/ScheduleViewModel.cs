@@ -11,16 +11,10 @@ public partial class ScheduleViewModel : BaseViewModel
 {
     private readonly MainViewModel _main;
 
-    [ObservableProperty]
-    private ObservableCollection<ScheduleDayGroup> _days = new();
+    [ObservableProperty] private ObservableCollection<ScheduleDayGroup> _days = new();
+    [ObservableProperty] private DateTime _selectedDate = DateTime.Today;
 
-    [ObservableProperty]
-    private DateTime _selectedDate = DateTime.Today;
-
-    public ScheduleViewModel(MainViewModel main)
-    {
-        _main = main;
-    }
+    public ScheduleViewModel(MainViewModel main) => _main = main;
 
     public void Load() => _ = LoadAsync();
 
@@ -29,14 +23,14 @@ public partial class ScheduleViewModel : BaseViewModel
         IsBusy = true;
         try
         {
-            var today = DateTime.Today;
-            var end = today.AddDays(7);
+            var now = DateTime.Now;          // ← use Now, not Today, to hide past sessions
+            var end = DateTime.Today.AddDays(7);
 
             var grouped = await Task.Run(() =>
             {
                 using var db = new CinemaDbContext();
                 var sessions = db.Sessions
-                    .Where(s => s.IsActive && s.StartTime >= today && s.StartTime < end)
+                    .Where(s => s.IsActive && s.StartTime >= now && s.StartTime < end)
                     .Include(s => s.Movie)
                     .Include(s => s.Hall)
                     .OrderBy(s => s.StartTime)
@@ -50,17 +44,14 @@ public partial class ScheduleViewModel : BaseViewModel
 
             Days = new ObservableCollection<ScheduleDayGroup>(grouped);
         }
-        finally
-        {
-            IsBusy = false;
-        }
+        finally { IsBusy = false; }
     }
 
     [RelayCommand]
-    private void SelectSession(Session session)
-    {
-        _main.NavigateTo(AppPage.SeatPicker, session);
-    }
+    private void SelectSession(Session session) => _main.NavigateTo(AppPage.SeatPicker, session);
+
+    [RelayCommand]
+    private void Refresh() => Load();
 }
 
 public class ScheduleDayGroup
@@ -71,11 +62,11 @@ public class ScheduleDayGroup
 
     public ScheduleDayGroup(DateTime date, List<Session> sessions)
     {
-        Date = date;
+        Date     = date;
         Sessions = sessions;
-        DayLabel = date == DateTime.Today ? "Сегодня"
+        var raw  = date == DateTime.Today ? "Сегодня"
                  : date == DateTime.Today.AddDays(1) ? "Завтра"
                  : date.ToString("dddd, dd MMMM", new System.Globalization.CultureInfo("ru-RU"));
-        DayLabel = char.ToUpper(DayLabel[0]) + DayLabel[1..];
+        DayLabel = char.ToUpper(raw[0]) + raw[1..];
     }
 }
