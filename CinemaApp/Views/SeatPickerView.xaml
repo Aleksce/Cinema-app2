@@ -105,9 +105,9 @@
                     </LinearGradientBrush>
                 </Border.Background>
             </Border>
-            <TextBlock Text="ЭКРАН" Foreground="{StaticResource TextSecondaryBrush}"
+            <TextBlock Text="—  Э К Р А Н  —" Foreground="{StaticResource TextSecondaryBrush}"
                        FontSize="10" FontWeight="Bold" HorizontalAlignment="Center"
-                       LetterSpacing="4" Margin="0,5,0,8"/>
+                       Margin="0,5,0,8"/>
         </StackPanel>
 
         <!-- Seat grid -->
