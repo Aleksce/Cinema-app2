@@ -5,6 +5,42 @@
              Background="{StaticResource PrimaryBrush}">
     <UserControl.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolVis"/>
+
+        <!-- Hover animation for session rows -->
+        <Style x:Key="ScheduleRowStyle" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value><ScaleTransform ScaleX="1" ScaleY="1"/></Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Trigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX"
+                                                 To="1.015" Duration="0:0:0.1"/>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                                                 To="1.015" Duration="0:0:0.1"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.EnterActions>
+                    <Trigger.ExitActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX"
+                                                 To="1" Duration="0:0:0.08"/>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                                                 To="1" Duration="0:0:0.08"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.ExitActions>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -16,110 +52,141 @@
         <!-- Header -->
         <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}"
                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="24,16">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="📅" FontSize="22" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="Расписание" Foreground="{StaticResource TextPrimaryBrush}"
-                               FontSize="22" FontWeight="Bold"/>
-                    <TextBlock Text="Сеансы на ближайшие 7 дней"
-                               Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2,0,0"/>
+            <Grid>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="📅" FontSize="22" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Расписание сеансов" Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="22" FontWeight="Bold"/>
+                        <TextBlock Text="Ближайшие 7 дней · только предстоящие сеансы"
+                                   Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2,0,0"/>
+                    </StackPanel>
                 </StackPanel>
-            </StackPanel>
+
+                <!-- Refresh button -->
+                <Button HorizontalAlignment="Right" Style="{StaticResource GhostButtonStyle}"
+                        Content="⟳ Обновить" Command="{Binding RefreshCommand}"/>
+            </Grid>
         </Border>
 
-        <!-- Schedule list -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="20,16,20,24">
+
+                <!-- Loading indicator -->
+                <Border Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}"
+                        HorizontalAlignment="Center" Margin="0,40,0,0">
+                    <TextBlock Text="Загрузка расписания..." Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="14"/>
+                </Border>
+
+                <!-- Session days -->
                 <ItemsControl ItemsSource="{Binding Days}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Margin="0,0,0,20">
+                            <StackPanel Margin="0,0,0,24">
                                 <!-- Day header -->
                                 <Border Margin="0,0,0,10">
                                     <StackPanel Orientation="Horizontal">
-                                        <Border Width="3" CornerRadius="2" Background="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
+                                        <Border Width="4" CornerRadius="2"
+                                                Background="{StaticResource AccentBrush}"
+                                                Margin="0,0,12,0"/>
                                         <TextBlock Text="{Binding DayLabel}"
                                                    Foreground="{StaticResource TextPrimaryBrush}"
-                                                   FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                                                   FontSize="17" FontWeight="Bold" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Border>
 
-                                <!-- Sessions for this day -->
+                                <!-- Sessions -->
                                 <ItemsControl ItemsSource="{Binding Sessions}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Button Margin="0,0,0,8" Padding="0" BorderThickness="0"
-                                                    Background="Transparent" Cursor="Hand"
+                                            <Button Margin="0,0,0,8" Style="{StaticResource ScheduleRowStyle}"
                                                     Command="{Binding DataContext.SelectSessionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}">
-                                                <Button.Template>
-                                                    <ControlTemplate TargetType="Button">
-                                                        <Border Background="{StaticResource CardBrush}" CornerRadius="12"
-                                                                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
-                                                            <Border.Effect>
-                                                                <DropShadowEffect Color="#000000" BlurRadius="6" Opacity="0.2" ShadowDepth="2"/>
-                                                            </Border.Effect>
-                                                            <Grid Margin="14,12">
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="70"/>
-                                                                    <ColumnDefinition Width="*"/>
-                                                                    <ColumnDefinition Width="Auto"/>
-                                                                </Grid.ColumnDefinitions>
+                                                <Border Background="{StaticResource CardBrush}" CornerRadius="14"
+                                                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                                                    <Border.Effect>
+                                                        <DropShadowEffect Color="#000" BlurRadius="8"
+                                                                          Opacity="0.25" ShadowDepth="2"/>
+                                                    </Border.Effect>
+                                                    <Grid Margin="16,14">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="80"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
 
-                                                                <!-- Time -->
-                                                                <StackPanel VerticalAlignment="Center">
-                                                                    <TextBlock Text="{Binding StartTime, StringFormat=HH:mm}"
-                                                                               Foreground="{StaticResource TextPrimaryBrush}"
-                                                                               FontSize="20" FontWeight="Bold" HorizontalAlignment="Center"/>
-                                                                    <TextBlock Text="{Binding Format}"
-                                                                               Foreground="{StaticResource AccentBrush}"
-                                                                               FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
-                                                                </StackPanel>
+                                                        <!-- Time + format -->
+                                                        <StackPanel VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding StartTime, StringFormat=HH:mm}"
+                                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                                       FontSize="22" FontWeight="Black"
+                                                                       HorizontalAlignment="Center"/>
+                                                            <Border Background="{StaticResource AccentBrush}"
+                                                                    CornerRadius="4" Padding="6,2"
+                                                                    Margin="0,4,0,0" HorizontalAlignment="Center">
+                                                                <TextBlock Text="{Binding Format}"
+                                                                           Foreground="White"
+                                                                           FontSize="10" FontWeight="Bold"/>
+                                                            </Border>
+                                                        </StackPanel>
 
-                                                                <!-- Vertical divider -->
-                                                                <Rectangle Grid.Column="0" Width="1"
-                                                                           Fill="{StaticResource BorderBrush}"
-                                                                           HorizontalAlignment="Right" Margin="0,4"/>
+                                                        <!-- Divider -->
+                                                        <Rectangle Grid.Column="0" Width="1"
+                                                                   Fill="{StaticResource BorderBrush}"
+                                                                   HorizontalAlignment="Right" Margin="0,4"/>
 
-                                                                <!-- Movie info -->
-                                                                <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
-                                                                    <TextBlock Text="{Binding Movie.Title}"
-                                                                               Foreground="{StaticResource TextPrimaryBrush}"
-                                                                               FontSize="14" FontWeight="SemiBold"
-                                                                               TextTrimming="CharacterEllipsis"/>
-                                                                    <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
-                                                                               FontSize="12" Margin="0,3,0,0">
-                                                                        <Run Text="{Binding Hall.Name}"/>
-                                                                    </TextBlock>
-                                                                    <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                                                                        <TextBlock Text="{Binding Movie.Genre}"
-                                                                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                                                                   FontSize="11"
-                                                                                   TextTrimming="CharacterEllipsis" MaxWidth="180"/>
-                                                                        <TextBlock Text=" · " Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
-                                                                        <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="11">
-                                                                            <Run Text="{Binding Movie.DurationMinutes}"/><Run Text=" мин"/>
-                                                                        </TextBlock>
-                                                                    </StackPanel>
-                                                                </StackPanel>
+                                                        <!-- Movie info + hall address -->
+                                                        <StackPanel Grid.Column="1" Margin="16,0,0,0"
+                                                                    VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Movie.Title}"
+                                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                                       FontSize="15" FontWeight="SemiBold"
+                                                                       TextTrimming="CharacterEllipsis"/>
+                                                            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                                                <TextBlock Text="📍 " FontSize="11"
+                                                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                                <TextBlock Text="{Binding Hall.Name}"
+                                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                                           FontSize="11"/>
+                                                            </StackPanel>
+                                                            <TextBlock Foreground="#77AAAACC"
+                                                                       FontSize="10" Margin="0,2,0,0"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       Text="{Binding Hall.Address}"/>
+                                                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                                                <TextBlock Text="{Binding Movie.Genre}"
+                                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                                           FontSize="11"
+                                                                           TextTrimming="CharacterEllipsis"
+                                                                           MaxWidth="200"/>
+                                                                <TextBlock Text=" · " Foreground="{StaticResource TextSecondaryBrush}"
+                                                                           FontSize="11"/>
+                                                                <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                                                                           FontSize="11">
+                                                                    <Run Text="{Binding Movie.DurationMinutes}"/><Run Text=" мин"/>
+                                                                </TextBlock>
+                                                            </StackPanel>
+                                                        </StackPanel>
 
-                                                                <!-- Price + button -->
-                                                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="12,0,0,0">
-                                                                    <TextBlock Foreground="{StaticResource AccentBrush}"
-                                                                               FontSize="15" FontWeight="Bold" HorizontalAlignment="Right">
-                                                                        <Run Text="{Binding BasePrice, StringFormat=N0}"/><Run Text=" ₽"/>
-                                                                    </TextBlock>
-                                                                    <Border Background="{StaticResource AccentBrush}" CornerRadius="6"
-                                                                            Padding="12,6" Margin="0,6,0,0" Cursor="Hand">
-                                                                        <TextBlock Text="Купить" Foreground="White"
-                                                                                   FontSize="12" FontWeight="SemiBold"
-                                                                                   HorizontalAlignment="Center"/>
-                                                                    </Border>
-                                                                </StackPanel>
-                                                            </Grid>
-                                                        </Border>
-                                                    </ControlTemplate>
-                                                </Button.Template>
+                                                        <!-- Price + Buy -->
+                                                        <StackPanel Grid.Column="2" VerticalAlignment="Center"
+                                                                    Margin="12,0,0,0">
+                                                            <TextBlock Foreground="{StaticResource GoldBrush}"
+                                                                       FontSize="16" FontWeight="Bold"
+                                                                       HorizontalAlignment="Right">
+                                                                <Run Text="{Binding BasePrice, StringFormat=N0}"/><Run Text=" ₽"/>
+                                                            </TextBlock>
+                                                            <Border Background="{StaticResource AccentBrush}"
+                                                                    CornerRadius="8" Padding="16,8"
+                                                                    Margin="0,8,0,0" Cursor="Hand">
+                                                                <TextBlock Text="Купить" Foreground="White"
+                                                                           FontSize="13" FontWeight="Bold"
+                                                                           HorizontalAlignment="Center"/>
+                                                            </Border>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
                                             </Button>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
@@ -129,12 +196,47 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <!-- Empty -->
+                <!-- Empty state -->
                 <StackPanel HorizontalAlignment="Center" Margin="0,60,0,0"
                             Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}, ConverterParameter=invert}">
-                    <TextBlock Text="📅" FontSize="48" HorizontalAlignment="Center"/>
-                    <TextBlock Text="Расписание загружается..." Foreground="{StaticResource TextSecondaryBrush}"
-                               FontSize="15" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                    <TextBlock Text="{Binding Days.Count, FallbackValue=0}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Days.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="📅" FontSize="48" HorizontalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Days.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="Расписание появится после синхронизации"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="14" HorizontalAlignment="Center" Margin="0,12,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Days.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>
