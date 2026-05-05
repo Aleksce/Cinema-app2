@@ -3,29 +3,66 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CinemaApp.Data;
 
-/// <summary>
-/// Creates DB structure on first launch: halls and demo user only.
-/// Movies are loaded via TMDB sync (MovieSyncService).
-/// Also applies incremental schema patches so old databases stay compatible.
-/// </summary>
 public static class DatabaseInitializer
 {
     public static void Initialize(CinemaDbContext context)
     {
         context.Database.EnsureCreated();
-
-        // ── Incremental schema patches ───────────────────────────────
         ApplySchemaPatches(context);
 
-        // ── Halls ────────────────────────────────────────────────────
+        // ── Halls with real addresses ────────────────────────────────
         if (!context.Halls.Any())
         {
             context.Halls.AddRange(
-                new Hall { Name = "Зал 1 — Dolby Atmos", TotalRows = 12, SeatsPerRow = 14 },
-                new Hall { Name = "Зал 2 — IMAX",         TotalRows = 10, SeatsPerRow = 12 },
-                new Hall { Name = "Зал 3 — VIP",           TotalRows = 8,  SeatsPerRow = 10 },
-                new Hall { Name = "Зал 4 — 4DX",           TotalRows = 9,  SeatsPerRow = 11 }
+                new Hall
+                {
+                    Name = "Зал 1 — Dolby Atmos",
+                    Address = "ул. Пушкина, 1, ТРЦ «Аврора», 3-й этаж",
+                    City = "Москва",
+                    TotalRows = 12, SeatsPerRow = 14
+                },
+                new Hall
+                {
+                    Name = "Зал 2 — IMAX",
+                    Address = "просп. Мира, 45, ТРЦ «Галактика», 4-й этаж",
+                    City = "Москва",
+                    TotalRows = 10, SeatsPerRow = 12
+                },
+                new Hall
+                {
+                    Name = "Зал 3 — VIP",
+                    Address = "ул. Ленина, 12, ТРЦ «Планета», 2-й этаж",
+                    City = "Москва",
+                    TotalRows = 8, SeatsPerRow = 10
+                },
+                new Hall
+                {
+                    Name = "Зал 4 — 4DX",
+                    Address = "ул. Садовая, 8, ТРЦ «Радуга», 5-й этаж",
+                    City = "Москва",
+                    TotalRows = 9, SeatsPerRow = 11
+                }
             );
+            context.SaveChanges();
+        }
+        else
+        {
+            // Backfill addresses for existing halls without them
+            var halls = context.Halls.ToList();
+            string[] addresses = {
+                "ул. Пушкина, 1, ТРЦ «Аврора», 3-й этаж",
+                "просп. Мира, 45, ТРЦ «Галактика», 4-й этаж",
+                "ул. Ленина, 12, ТРЦ «Планета», 2-й этаж",
+                "ул. Садовая, 8, ТРЦ «Радуга», 5-й этаж"
+            };
+            for (int i = 0; i < halls.Count && i < addresses.Length; i++)
+            {
+                if (string.IsNullOrEmpty(halls[i].Address))
+                {
+                    halls[i].Address = addresses[i];
+                    halls[i].City = "Москва";
+                }
+            }
             context.SaveChanges();
         }
 
@@ -46,33 +83,41 @@ public static class DatabaseInitializer
         }
     }
 
-    /// <summary>
-    /// Adds missing columns to existing databases without dropping them.
-    /// Each patch is idempotent — safe to run multiple times.
-    /// </summary>
     private static void ApplySchemaPatches(CinemaDbContext context)
     {
-        // Patch 1: TmdbId column on Movies table
-        context.Database.ExecuteSqlRaw("""
-            IF NOT EXISTS (
-                SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_NAME = 'Movies' AND COLUMN_NAME = 'TmdbId'
-            )
-            BEGIN
-                ALTER TABLE Movies ADD TmdbId INT NOT NULL DEFAULT 0;
-            END
-            """);
+        // Movies table patches
+        foreach (var (col, def) in new[]
+        {
+            ("TmdbId",      "INT NOT NULL DEFAULT 0"),
+            ("OriginalTitle","NVARCHAR(MAX) NOT NULL DEFAULT ''"),
+            ("TopCastJson",  "NVARCHAR(MAX) NOT NULL DEFAULT '[]'"),
+            ("BackdropUrl",  "NVARCHAR(MAX) NOT NULL DEFAULT ''"),
+        })
+        {
+            context.Database.ExecuteSqlRaw($"""
+                IF NOT EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'Movies' AND COLUMN_NAME = '{col}'
+                )
+                ALTER TABLE Movies ADD {col} {def};
+                """);
+        }
 
-        // Patch 2: OriginalTitle column on Movies table
-        context.Database.ExecuteSqlRaw("""
-            IF NOT EXISTS (
-                SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_NAME = 'Movies' AND COLUMN_NAME = 'OriginalTitle'
-            )
-            BEGIN
-                ALTER TABLE Movies ADD OriginalTitle NVARCHAR(MAX) NOT NULL DEFAULT '';
-            END
-            """);
+        // Halls table patches
+        foreach (var (col, def) in new[]
+        {
+            ("Address", "NVARCHAR(300) NOT NULL DEFAULT ''"),
+            ("City",    "NVARCHAR(100) NOT NULL DEFAULT 'Москва'"),
+        })
+        {
+            context.Database.ExecuteSqlRaw($"""
+                IF NOT EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'Halls' AND COLUMN_NAME = '{col}'
+                )
+                ALTER TABLE Halls ADD {col} {def};
+                """);
+        }
     }
 
     public static string HashPassword(string password) =>
