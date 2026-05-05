@@ -10,11 +10,13 @@ public class Movie
     public string Genre { get; set; } = string.Empty;
     public string Director { get; set; } = string.Empty;
     public string Cast { get; set; } = string.Empty;
+    public string TopCastJson { get; set; } = "[]";
     public int DurationMinutes { get; set; }
     public int Year { get; set; }
     public string AgeRating { get; set; } = string.Empty;
     public double ImdbRating { get; set; }
     public string PosterUrl { get; set; } = string.Empty;
+    public string BackdropUrl { get; set; } = string.Empty;
     public string TrailerUrl { get; set; } = string.Empty;
     public DateTime ReleaseDate { get; set; }
     public bool IsActive { get; set; } = true;
