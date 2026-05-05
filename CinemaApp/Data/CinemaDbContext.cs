@@ -5,17 +5,18 @@ namespace CinemaApp.Data;
 
 public class CinemaDbContext : DbContext
 {
-    public DbSet<Movie> Movies { get; set; }
-    public DbSet<Hall> Halls { get; set; }
+    public DbSet<Movie>   Movies   { get; set; }
+    public DbSet<Hall>    Halls    { get; set; }
     public DbSet<Session> Sessions { get; set; }
-    public DbSet<Seat> Seats { get; set; }
-    public DbSet<User> Users { get; set; }
-    public DbSet<Ticket> Tickets { get; set; }
+    public DbSet<Seat>    Seats    { get; set; }
+    public DbSet<User>    Users    { get; set; }
+    public DbSet<Ticket>  Tickets  { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.UseSqlServer(
-            @"Server=(localdb)\MSSQLLocalDB;Database=CinemaDb;Trusted_Connection=True;MultipleActiveResultSets=true");
+            @"Server=(localdb)\MSSQLLocalDB;Database=CinemaDb;Trusted_Connection=True;MultipleActiveResultSets=true",
+            sqlOpts => sqlOpts.CommandTimeout(180));   // 3-minute timeout — enough for any single query
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
