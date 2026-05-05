@@ -89,13 +89,20 @@
                                     CommandParameter="{Binding}">
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
+                                        <!-- NOTE: ScaleTransform must be named so ControlTemplate
+                                             EventTrigger Storyboards can target it by name directly
+                                             (Storyboard.TargetName + TargetProperty="ScaleX").
+                                             Using the full attached-property path
+                                             "(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                             also works but only when the exact transform type is
+                                             known at parse time — targeting by name is more robust. -->
                                         <Border x:Name="CardRoot"
                                                 Background="{StaticResource CardBrush}"
                                                 CornerRadius="12" Width="185"
                                                 ClipToBounds="False"
                                                 RenderTransformOrigin="0.5,0.5">
                                             <Border.RenderTransform>
-                                                <ScaleTransform ScaleX="1" ScaleY="1"/>
+                                                <ScaleTransform x:Name="CardScale" ScaleX="1" ScaleY="1"/>
                                             </Border.RenderTransform>
                                             <Border.Effect>
                                                 <DropShadowEffect x:Name="CardShadow"
@@ -161,18 +168,20 @@
                                             </Border>
                                         </Border>
 
-                                        <!-- Hover + click animations via ControlTemplate.Triggers -->
+                                        <!-- Hover + click animations -->
+                                        <!-- Target the NAMED ScaleTransform directly — avoids the
+                                             XamlParseException "cannot resolve RenderTransform.ScaleX" -->
                                         <ControlTemplate.Triggers>
                                             <EventTrigger RoutedEvent="MouseEnter">
                                                 <BeginStoryboard>
                                                     <Storyboard>
                                                         <DoubleAnimation
-                                                            Storyboard.TargetName="CardRoot"
-                                                            Storyboard.TargetProperty="RenderTransform.ScaleX"
+                                                            Storyboard.TargetName="CardScale"
+                                                            Storyboard.TargetProperty="ScaleX"
                                                             To="1.05" Duration="0:0:0.15"/>
                                                         <DoubleAnimation
-                                                            Storyboard.TargetName="CardRoot"
-                                                            Storyboard.TargetProperty="RenderTransform.ScaleY"
+                                                            Storyboard.TargetName="CardScale"
+                                                            Storyboard.TargetProperty="ScaleY"
                                                             To="1.05" Duration="0:0:0.15"/>
                                                         <ColorAnimation
                                                             Storyboard.TargetName="HoverOverlay"
@@ -193,12 +202,12 @@
                                                 <BeginStoryboard>
                                                     <Storyboard>
                                                         <DoubleAnimation
-                                                            Storyboard.TargetName="CardRoot"
-                                                            Storyboard.TargetProperty="RenderTransform.ScaleX"
+                                                            Storyboard.TargetName="CardScale"
+                                                            Storyboard.TargetProperty="ScaleX"
                                                             To="1" Duration="0:0:0.12"/>
                                                         <DoubleAnimation
-                                                            Storyboard.TargetName="CardRoot"
-                                                            Storyboard.TargetProperty="RenderTransform.ScaleY"
+                                                            Storyboard.TargetName="CardScale"
+                                                            Storyboard.TargetProperty="ScaleY"
                                                             To="1" Duration="0:0:0.12"/>
                                                         <ColorAnimation
                                                             Storyboard.TargetName="HoverOverlay"
@@ -219,12 +228,12 @@
                                                 <BeginStoryboard>
                                                     <Storyboard>
                                                         <DoubleAnimation
-                                                            Storyboard.TargetName="CardRoot"
-                                                            Storyboard.TargetProperty="RenderTransform.ScaleX"
+                                                            Storyboard.TargetName="CardScale"
+                                                            Storyboard.TargetProperty="ScaleX"
                                                             To="0.97" Duration="0:0:0.06"/>
                                                         <DoubleAnimation
-                                                            Storyboard.TargetName="CardRoot"
-                                                            Storyboard.TargetProperty="RenderTransform.ScaleY"
+                                                            Storyboard.TargetName="CardScale"
+                                                            Storyboard.TargetProperty="ScaleY"
                                                             To="0.97" Duration="0:0:0.06"/>
                                                     </Storyboard>
                                                 </BeginStoryboard>
@@ -233,12 +242,12 @@
                                                 <BeginStoryboard>
                                                     <Storyboard>
                                                         <DoubleAnimation
-                                                            Storyboard.TargetName="CardRoot"
-                                                            Storyboard.TargetProperty="RenderTransform.ScaleX"
+                                                            Storyboard.TargetName="CardScale"
+                                                            Storyboard.TargetProperty="ScaleX"
                                                             To="1.05" Duration="0:0:0.08"/>
                                                         <DoubleAnimation
-                                                            Storyboard.TargetName="CardRoot"
-                                                            Storyboard.TargetProperty="RenderTransform.ScaleY"
+                                                            Storyboard.TargetName="CardScale"
+                                                            Storyboard.TargetProperty="ScaleY"
                                                             To="1.05" Duration="0:0:0.08"/>
                                                     </Storyboard>
                                                 </BeginStoryboard>
