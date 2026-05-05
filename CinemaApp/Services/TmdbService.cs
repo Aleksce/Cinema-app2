@@ -1,5 +1,6 @@
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace CinemaApp.Services;
@@ -27,6 +28,7 @@ public record TmdbMovieDetails(
     [property: JsonPropertyName("original_title")] string OriginalTitle,
     [property: JsonPropertyName("overview")] string Overview,
     [property: JsonPropertyName("poster_path")] string? PosterPath,
+    [property: JsonPropertyName("backdrop_path")] string? BackdropPath,
     [property: JsonPropertyName("vote_average")] double VoteAverage,
     [property: JsonPropertyName("release_date")] string ReleaseDate,
     [property: JsonPropertyName("runtime")] int? Runtime,
@@ -45,6 +47,8 @@ public record TmdbCredits(
 
 public record TmdbCastMember(
     [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("character")] string Character,
+    [property: JsonPropertyName("profile_path")] string? ProfilePath,
     [property: JsonPropertyName("order")] int Order);
 
 public record TmdbCrewMember(
@@ -63,9 +67,12 @@ public record TmdbVideo(
 
 public class TmdbService : IDisposable
 {
-    private const string ApiKey = "42a2ec31887cd90e5f695ba9c377ad17";
+    private const string ApiKey  = "42a2ec31887cd90e5f695ba9c377ad17";
     private const string BaseUrl = "https://api.themoviedb.org/3";
-    public const string PosterBase = "https://image.tmdb.org/t/p/w500";
+
+    public const string PosterBase   = "https://image.tmdb.org/t/p/w500";
+    public const string BackdropBase = "https://image.tmdb.org/t/p/w1280";
+    public const string ActorBase    = "https://image.tmdb.org/t/p/w185";
 
     private readonly HttpClient _http;
 
@@ -113,18 +120,16 @@ public class TmdbService : IDisposable
             return await _http.GetFromJsonAsync<TmdbMovieDetails>(
                 Url($"/movie/{tmdbId}", "&append_to_response=credits,videos"));
         }
-        catch
-        {
-            return null;
-        }
+        catch { return null; }
     }
+
+    // ── Helpers ───────────────────────────────────────────────────
 
     public string? GetTrailerUrl(TmdbMovieDetails details)
     {
-        var trailer = details.Videos?.Results
-            .FirstOrDefault(v => v.Site == "YouTube" &&
-                                 (v.Type == "Trailer" || v.Type == "Teaser"));
-        return trailer != null ? $"https://www.youtube.com/watch?v={trailer.Key}" : null;
+        var v = details.Videos?.Results
+            .FirstOrDefault(v => v.Site == "YouTube" && (v.Type == "Trailer" || v.Type == "Teaser"));
+        return v != null ? $"https://www.youtube.com/watch?v={v.Key}" : null;
     }
 
     public string? GetDirector(TmdbMovieDetails details)
@@ -133,12 +138,29 @@ public class TmdbService : IDisposable
     public string GetCast(TmdbMovieDetails details, int max = 5)
     {
         var cast = details.Credits?.Cast
-            .OrderBy(c => c.Order)
-            .Take(max)
-            .Select(c => c.Name)
-            .ToList() ?? new();
+            .OrderBy(c => c.Order).Take(max).Select(c => c.Name).ToList() ?? new();
         return string.Join(", ", cast);
     }
+
+    /// <summary>Returns JSON array of top cast with photo URLs for on-screen display.</summary>
+    public string GetTopCastJson(TmdbMovieDetails details, int max = 8)
+    {
+        var cast = details.Credits?.Cast
+            .OrderBy(c => c.Order)
+            .Take(max)
+            .Select(c => new
+            {
+                name      = c.Name,
+                character = c.Character,
+                photoUrl  = c.ProfilePath != null ? ActorBase + c.ProfilePath : string.Empty
+            })
+            .ToList() ?? new();
+
+        return JsonSerializer.Serialize(cast);
+    }
+
+    public string? GetBackdropUrl(TmdbMovieDetails details)
+        => details.BackdropPath != null ? BackdropBase + details.BackdropPath : null;
 
     public string GetAgeRating(bool adult) => adult ? "18+" : "12+";
 
