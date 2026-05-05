@@ -6,7 +6,60 @@
              Background="{StaticResource PrimaryBrush}">
     <UserControl.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolVis"/>
-        <conv:SeatColorConverter x:Key="SeatColor"/>
+
+        <!-- Seat button style — uses DataTriggers so IsSelected change redraws immediately -->
+        <Style x:Key="SeatStyle" TargetType="Border">
+            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="Width"        Value="28"/>
+            <Setter Property="Height"       Value="24"/>
+            <Setter Property="Background"   Value="#2A3A5C"/>
+            <Setter Property="Cursor"       Value="Hand"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value><ScaleTransform ScaleX="1" ScaleY="1"/></Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <!-- VIP — available -->
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding Type}"       Value="VIP"/>
+                        <Condition Binding="{Binding Status}"     Value="Available"/>
+                        <Condition Binding="{Binding IsSelected}" Value="False"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Background" Value="#1A3820"/>
+                </MultiDataTrigger>
+                <!-- Sofa — available -->
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding Type}"       Value="Sofa"/>
+                        <Condition Binding="{Binding Status}"     Value="Available"/>
+                        <Condition Binding="{Binding IsSelected}" Value="False"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Background" Value="#3A2810"/>
+                </MultiDataTrigger>
+                <!-- Occupied — always grey, not clickable look -->
+                <DataTrigger Binding="{Binding Status}" Value="Occupied">
+                    <Setter Property="Background" Value="#252530"/>
+                    <Setter Property="Cursor"     Value="Arrow"/>
+                </DataTrigger>
+                <!-- SELECTED — red glow, always on top of type -->
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Background" Value="#E50914"/>
+                    <DataTrigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX"
+                                                 From="0.85" To="1.1" Duration="0:0:0.08"
+                                                 AutoReverse="True"/>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                                                 From="0.85" To="1.1" Duration="0:0:0.08"
+                                                 AutoReverse="True"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </DataTrigger.EnterActions>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -18,83 +71,115 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Grid Grid.Row="0" Margin="20,12,20,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <Button Style="{StaticResource GhostButtonStyle}" Content="← Назад" Command="{Binding GoBackCommand}"/>
-            <StackPanel Grid.Column="1" HorizontalAlignment="Center">
-                <TextBlock Text="{Binding Session.Movie.Title}" Foreground="{StaticResource TextPrimaryBrush}"
-                           FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
-                <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" HorizontalAlignment="Center">
-                    <Run Text="{Binding Session.StartTime, StringFormat=dd MMMM · HH:mm}"/>
-                    <Run Text=" · "/>
-                    <Run Text="{Binding Session.Hall.Name}"/>
-                </TextBlock>
-            </StackPanel>
-        </Grid>
+        <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
+                Padding="16,12">
+            <Grid>
+                <Button Style="{StaticResource GhostButtonStyle}" Content="← Назад"
+                        HorizontalAlignment="Left" Command="{Binding GoBackCommand}"/>
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="{Binding Session.Movie.Title}"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
+                    <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="12" HorizontalAlignment="Center">
+                        <Run Text="{Binding Session.StartTime, StringFormat='dd MMMM · HH:mm'}"/>
+                        <Run Text=" · "/>
+                        <Run Text="{Binding Session.Hall.Name}"/>
+                    </TextBlock>
+                    <TextBlock Text="{Binding Session.Hall.Address}"
+                               Foreground="#556680" FontSize="10"
+                               HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
 
         <!-- Screen indicator -->
-        <Border Grid.Row="1" Margin="40,20,40,4" Height="6" CornerRadius="3">
-            <Border.Background>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                    <GradientStop Color="#E50914" Offset="0"/>
-                    <GradientStop Color="#FF6B35" Offset="0.5"/>
-                    <GradientStop Color="#E50914" Offset="1"/>
-                </LinearGradientBrush>
-            </Border.Background>
-        </Border>
-        <TextBlock Grid.Row="1" Text="ЭКРАН" Foreground="{StaticResource TextSecondaryBrush}"
-                   FontSize="11" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+        <StackPanel Grid.Row="1" Margin="0,16,0,0">
+            <Border Margin="60,0,60,0" Height="5" CornerRadius="3">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="#E50914" Offset="0"/>
+                        <GradientStop Color="#FF6B35" Offset="0.5"/>
+                        <GradientStop Color="#E50914" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+            </Border>
+            <TextBlock Text="ЭКРАН" Foreground="{StaticResource TextSecondaryBrush}"
+                       FontSize="10" FontWeight="Bold" HorizontalAlignment="Center"
+                       LetterSpacing="4" Margin="0,5,0,8"/>
+        </StackPanel>
 
         <!-- Seat grid -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-            <StackPanel HorizontalAlignment="Center" Margin="20,12,20,12">
-                <!-- Legend -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,16">
-                    <Ellipse Width="14" Height="14" Fill="#2A3A5C"/>
-                    <TextBlock Text="Свободно" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="6,0,16,0" VerticalAlignment="Center"/>
-                    <Ellipse Width="14" Height="14" Fill="#E50914"/>
-                    <TextBlock Text="Выбрано" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="6,0,16,0" VerticalAlignment="Center"/>
-                    <Ellipse Width="14" Height="14" Fill="#3A3A4A"/>
-                    <TextBlock Text="Занято" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="6,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Auto">
+            <StackPanel HorizontalAlignment="Center" Margin="20,4,20,12">
 
-                <!-- Rows -->
+                <!-- Legend -->
+                <Border Background="{StaticResource CardBrush}" CornerRadius="8"
+                        Padding="14,8" Margin="0,0,0,14" HorizontalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <Rectangle Width="18" Height="14" RadiusX="3" RadiusY="3" Fill="#2A3A5C"/>
+                        <TextBlock Text="Стандарт" Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11" Margin="5,0,14,0" VerticalAlignment="Center"/>
+                        <Rectangle Width="18" Height="14" RadiusX="3" RadiusY="3" Fill="#1A3820"/>
+                        <TextBlock Text="VIP" Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11" Margin="5,0,14,0" VerticalAlignment="Center"/>
+                        <Rectangle Width="18" Height="14" RadiusX="3" RadiusY="3" Fill="#3A2810"/>
+                        <TextBlock Text="Диван" Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11" Margin="5,0,14,0" VerticalAlignment="Center"/>
+                        <Rectangle Width="18" Height="14" RadiusX="3" RadiusY="3" Fill="#E50914"/>
+                        <TextBlock Text="Выбрано" Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11" Margin="5,0,14,0" VerticalAlignment="Center"/>
+                        <Rectangle Width="18" Height="14" RadiusX="3" RadiusY="3" Fill="#252530"/>
+                        <TextBlock Text="Занято" Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Seat rows -->
                 <ItemsControl ItemsSource="{Binding Rows}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:SeatRowViewModel}">
-                            <Grid Margin="0,2,0,2">
+                            <Grid Margin="0,3,0,3">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="24"/>
+                                    <ColumnDefinition Width="26"/>
                                     <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="26"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding RowLabel}" Foreground="{StaticResource TextSecondaryBrush}"
-                                           FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{Binding RowLabel}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           FontSize="12" VerticalAlignment="Center"
+                                           HorizontalAlignment="Center"/>
                                 <ItemsControl Grid.Column="1" ItemsSource="{Binding Seats}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Horizontal"/>
+                                            <StackPanel Orientation="Horizontal"
+                                                        HorizontalAlignment="Center"/>
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:SeatViewModel}">
-                                            <Button Width="26" Height="22" Margin="2,0"
-                                                    Command="{Binding DataContext.ToggleSeatCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding}"
-                                                    Cursor="Hand">
+                                            <Button Margin="2,0" Padding="0"
+                                                    Width="28" Height="24"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Command="{Binding DataContext.ToggleSeatCommand,
+                                                        RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}">
                                                 <Button.Template>
                                                     <ControlTemplate TargetType="Button">
-                                                        <Border CornerRadius="4" Width="26" Height="22"
-                                                                Background="{Binding Converter={StaticResource SeatColor}}">
-                                                        </Border>
+                                                        <Border Style="{StaticResource SeatStyle}"/>
                                                     </ControlTemplate>
                                                 </Button.Template>
                                             </Button>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+                                <TextBlock Grid.Column="2" Text="{Binding RowLabel}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           FontSize="12" VerticalAlignment="Center"
+                                           HorizontalAlignment="Center"/>
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -112,8 +197,12 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="{Binding SelectionSummary}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="14" FontWeight="SemiBold"/>
-                    <TextBlock Foreground="{StaticResource AccentBrush}" FontSize="20" FontWeight="Bold">
+                    <TextBlock Text="{Binding SelectionSummary}"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               FontSize="14" FontWeight="SemiBold"/>
+                    <TextBlock Foreground="{StaticResource AccentBrush}"
+                               FontSize="20" FontWeight="Bold"
+                               Visibility="{Binding HasSelection, Converter={StaticResource BoolVis}}">
                         <Run Text="{Binding TotalPrice, StringFormat=N0}"/><Run Text=" ₽"/>
                     </TextBlock>
                 </StackPanel>
