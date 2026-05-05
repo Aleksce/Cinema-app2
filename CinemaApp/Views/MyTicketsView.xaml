@@ -33,18 +33,13 @@
                         <ControlTemplate TargetType="Button">
                             <StackPanel>
                                 <TextBlock Text="Предстоящие" FontSize="14" FontWeight="SemiBold">
-                                    <TextBlock.Foreground>
-                                        <Binding Path="DataContext.ShowUpcoming" RelativeSource="{RelativeSource AncestorType=UserControl}">
-                                            <Binding.Converter>
-                                                <conv:BoolToVisibilityConverter/>
-                                            </Binding.Converter>
-                                        </Binding>
-                                    </TextBlock.Foreground>
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding DataContext.ShowUpcoming, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                                <DataTrigger Binding="{Binding DataContext.ShowUpcoming,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                             Value="True">
                                                     <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -56,7 +51,9 @@
                                         <Style TargetType="Border">
                                             <Setter Property="Background" Value="Transparent"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding DataContext.ShowUpcoming, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                                <DataTrigger Binding="{Binding DataContext.ShowUpcoming,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                             Value="True">
                                                     <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -78,7 +75,9 @@
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding DataContext.ShowUpcoming, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
+                                                <DataTrigger Binding="{Binding DataContext.ShowUpcoming,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                             Value="False">
                                                     <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -90,7 +89,9 @@
                                         <Style TargetType="Border">
                                             <Setter Property="Background" Value="Transparent"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding DataContext.ShowUpcoming, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
+                                                <DataTrigger Binding="{Binding DataContext.ShowUpcoming,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                             Value="False">
                                                     <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -104,28 +105,27 @@
             </StackPanel>
         </Border>
 
-        <!-- Ticket lists -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="24,16,24,24">
 
-                <!-- Upcoming -->
+                <!-- ══ UPCOMING TICKETS ══════════════════════════════════ -->
                 <ItemsControl ItemsSource="{Binding UpcomingTickets}"
                               Visibility="{Binding ShowUpcoming, Converter={StaticResource BoolVis}}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Border Background="{StaticResource CardBrush}" CornerRadius="16"
-                                    Margin="0,0,0,14" ClipToBounds="True">
+                                    Margin="0,0,0,16" ClipToBounds="True">
                                 <Border.Effect>
-                                    <DropShadowEffect Color="#000000" BlurRadius="12" Opacity="0.35" ShadowDepth="3"/>
+                                    <DropShadowEffect Color="#000000" BlurRadius="14" Opacity="0.4" ShadowDepth="4"/>
                                 </Border.Effect>
                                 <Grid>
                                     <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="5"/>
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
-                                    <!-- Top: colored bar -->
-                                    <Border Grid.Row="0" Height="4">
+                                    <!-- Accent top stripe -->
+                                    <Border Grid.Row="0">
                                         <Border.Background>
                                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                                                 <GradientStop Color="#E50914" Offset="0"/>
@@ -135,72 +135,121 @@
                                     </Border>
 
                                     <!-- Content -->
-                                    <Grid Grid.Row="1" Margin="18,14,18,14">
+                                    <Grid Grid.Row="1" Margin="18,14,18,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="96"/>
                                         </Grid.ColumnDefinitions>
 
+                                        <!-- Left: info -->
                                         <StackPanel>
                                             <TextBlock Text="{Binding MovieTitle}"
                                                        Foreground="{StaticResource TextPrimaryBrush}"
-                                                       FontSize="17" FontWeight="Bold" TextWrapping="Wrap"/>
+                                                       FontSize="16" FontWeight="Bold"
+                                                       TextWrapping="Wrap" MaxWidth="280"/>
 
-                                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                            <!-- Date / time -->
+                                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                                                 <TextBlock Text="📅" FontSize="12" VerticalAlignment="Center"/>
-                                                <TextBlock Margin="5,0,0,0"
-                                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="13">
-                                                    <Run Text="{Binding SessionTime, Mode=OneWay, StringFormat='dd MMMM yyyy · HH:mm'}"/>
-                                                </TextBlock>
-                                            </StackPanel>
-
-                                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                                <TextBlock Text="🏛" FontSize="12" VerticalAlignment="Center"/>
-                                                <TextBlock Margin="5,0,0,0"
-                                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="13">
-                                                    <Run Text="{Binding HallName, Mode=OneWay}"/>
-                                                    <Run Text=" · Место "/>
-                                                    <Run Text="{Binding SeatDisplay, Mode=OneWay}"
+                                                <TextBlock Margin="6,0,0,0"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           FontSize="13">
+                                                    <Run Text="{Binding SessionTime, Mode=OneWay, StringFormat='dd MMMM yyyy'}"/>
+                                                    <Run Text="·" Foreground="#555570"/>
+                                                    <Run Text="{Binding SessionTime, Mode=OneWay, StringFormat='HH:mm'}"
                                                          Foreground="{StaticResource TextPrimaryBrush}" FontWeight="SemiBold"/>
                                                 </TextBlock>
                                             </StackPanel>
 
-                                            <!-- Separator dashed line -->
-                                            <Rectangle Margin="0,12,0,12" Height="1" Fill="{StaticResource BorderBrush}"
-                                                       StrokeDashArray="4 4" Stroke="{StaticResource BorderBrush}" StrokeThickness="1"
-                                                       Opacity="0.4"/>
-
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Foreground="{StaticResource AccentBrush}"
-                                                           FontSize="18" FontWeight="Bold">
-                                                    <Run Text="{Binding Price, Mode=OneWay, StringFormat=N0}"/><Run Text=" ₽"/>
+                                            <!-- Hall + seat -->
+                                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                                <TextBlock Text="🏛" FontSize="12" VerticalAlignment="Center"/>
+                                                <TextBlock Margin="6,0,0,0"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           FontSize="13">
+                                                    <Run Text="{Binding HallName, Mode=OneWay}"/>
+                                                    <Run Text="  ·  " Foreground="#555570"/>
+                                                    <Run Text="Место "/>
+                                                    <Run Text="{Binding SeatDisplay, Mode=OneWay}"
+                                                         Foreground="{StaticResource TextPrimaryBrush}"
+                                                         FontWeight="Bold"/>
                                                 </TextBlock>
                                             </StackPanel>
 
-                                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                                <Button Style="{StaticResource AccentButtonStyle}" Content="Показать QR"
-                                                        Padding="14,8" FontSize="12"
-                                                        Command="{Binding DataContext.ShowTicketQrCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        CommandParameter="{Binding}"/>
-                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Отменить"
-                                                        Padding="14,8" FontSize="12" Margin="8,0,0,0"
-                                                        Command="{Binding DataContext.CancelTicketCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        CommandParameter="{Binding}"/>
-                                            </StackPanel>
+                                            <!-- Dashed separator -->
+                                            <Border Margin="0,12,0,12" Height="1" Opacity="0.35">
+                                                <Border.Background>
+                                                    <DrawingBrush TileMode="Tile"
+                                                                  Viewport="0,0,12,1" ViewportUnits="Absolute">
+                                                        <DrawingBrush.Drawing>
+                                                            <GeometryDrawing Brush="{StaticResource BorderBrush}">
+                                                                <GeometryDrawing.Geometry>
+                                                                    <RectangleGeometry Rect="0,0,8,1"/>
+                                                                </GeometryDrawing.Geometry>
+                                                            </GeometryDrawing>
+                                                        </DrawingBrush.Drawing>
+                                                    </DrawingBrush>
+                                                </Border.Background>
+                                            </Border>
+
+                                            <!-- Price -->
+                                            <TextBlock Foreground="{StaticResource AccentBrush}"
+                                                       FontSize="20" FontWeight="Bold" Margin="0,0,0,12">
+                                                <Run Text="{Binding Price, Mode=OneWay, StringFormat=N0}"/>
+                                                <Run Text=" ₽"/>
+                                            </TextBlock>
+
+                                            <!-- Action buttons -->
+                                            <WrapPanel>
+                                                <Button Padding="0" BorderThickness="0"
+                                                        Background="Transparent" Cursor="Hand"
+                                                        Margin="0,0,8,6"
+                                                        Command="{Binding DataContext.DownloadTicketPdfCommand,
+                                                            RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}">
+                                                    <Border Background="{StaticResource AccentBrush}"
+                                                            CornerRadius="8" Padding="14,8">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="📄 " Foreground="White" FontSize="12"
+                                                                       VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Скачать PDF" Foreground="White"
+                                                                       FontSize="12" FontWeight="SemiBold"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Button>
+
+                                                <Button Padding="0" BorderThickness="0"
+                                                        Background="Transparent" Cursor="Hand" Margin="0,0,0,6"
+                                                        Command="{Binding DataContext.CancelTicketCommand,
+                                                            RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}">
+                                                    <Border Background="Transparent" CornerRadius="8" Padding="14,8"
+                                                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                                                        <TextBlock Text="Отменить"
+                                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                                   FontSize="12"/>
+                                                    </Border>
+                                                </Button>
+                                            </WrapPanel>
                                         </StackPanel>
 
-                                        <!-- QR block -->
-                                        <Border Grid.Column="1" Width="76" Height="76"
-                                                Background="{StaticResource SurfaceBrush}"
-                                                CornerRadius="10" VerticalAlignment="Top"
+                                        <!-- Right: QR code placeholder -->
+                                        <Border Grid.Column="1" Width="80" Height="80"
+                                                Background="#1A1A2A" CornerRadius="10"
+                                                VerticalAlignment="Top" Margin="12,0,0,0"
                                                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
                                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                <TextBlock Text="▦" FontSize="30"
+                                                <TextBlock Text="▦" FontSize="28"
                                                            Foreground="{StaticResource AccentBrush}"
                                                            HorizontalAlignment="Center"/>
-                                                <TextBlock Text="QR" FontSize="10"
+                                                <TextBlock Text="QR" FontSize="9"
                                                            Foreground="{StaticResource TextSecondaryBrush}"
-                                                           HorizontalAlignment="Center"/>
+                                                           HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                                <TextBlock Text="{Binding QrCode}"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           FontSize="7" HorizontalAlignment="Center"
+                                                           TextWrapping="Wrap" TextAlignment="Center"
+                                                           Margin="4,2,4,0" MaxWidth="72"/>
                                             </StackPanel>
                                         </Border>
                                     </Grid>
@@ -210,15 +259,16 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <!-- Past (History) -->
+                <!-- ══ HISTORY ══════════════════════════════════════════ -->
                 <ItemsControl ItemsSource="{Binding PastTickets}">
                     <ItemsControl.Visibility>
-                        <Binding Path="ShowUpcoming" Converter="{StaticResource BoolVis}" ConverterParameter="invert"/>
+                        <Binding Path="ShowUpcoming" Converter="{StaticResource BoolVis}"
+                                 ConverterParameter="invert"/>
                     </ItemsControl.Visibility>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Background="{StaticResource CardBrush}" CornerRadius="12" Opacity="0.65"
-                                    Margin="0,0,0,10" Padding="18,14">
+                            <Border Background="{StaticResource CardBrush}" CornerRadius="12"
+                                    Opacity="0.7" Margin="0,0,0,10" Padding="18,14">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -227,12 +277,13 @@
                                     <StackPanel>
                                         <TextBlock Text="{Binding MovieTitle}"
                                                    Foreground="{StaticResource TextPrimaryBrush}"
-                                                   FontSize="15" FontWeight="SemiBold"/>
+                                                   FontSize="14" FontWeight="SemiBold"/>
                                         <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
                                                    FontSize="12" Margin="0,5,0,0">
                                             <Run Text="{Binding SessionTime, Mode=OneWay, StringFormat='dd MMMM yyyy · HH:mm'}"/>
                                         </TextBlock>
-                                        <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2,0,0">
+                                        <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                                                   FontSize="12" Margin="0,2,0,0">
                                             <Run Text="Место "/>
                                             <Run Text="{Binding SeatDisplay, Mode=OneWay}"/>
                                             <Run Text=" · "/>
@@ -240,25 +291,54 @@
                                             <Run Text=" ₽"/>
                                         </TextBlock>
                                     </StackPanel>
-                                    <Border Grid.Column="1" Background="#1A3A3A4A"
-                                            CornerRadius="6" Padding="10,5" VerticalAlignment="Center"
-                                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
-                                        <TextBlock Text="Просмотрено"
-                                                   Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
-                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                                        <!-- Download PDF even for past tickets -->
+                                        <Button Padding="0" BorderThickness="0"
+                                                Background="Transparent" Cursor="Hand" Margin="0,0,0,6"
+                                                Command="{Binding DataContext.DownloadTicketPdfCommand,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}">
+                                            <Border Background="#1A2A2A" CornerRadius="6" Padding="10,5"
+                                                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                                                <TextBlock Text="📄 PDF"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           FontSize="11"/>
+                                            </Border>
+                                        </Button>
+                                        <Border Background="#1A3A3A4A" CornerRadius="6" Padding="10,5"
+                                                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                                            <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                                                       FontSize="11">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="Просмотрено"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Status}"
+                                                                         Value="Cancelled">
+                                                                <Setter Property="Text" Value="Отменён"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
+                                    </StackPanel>
                                 </Grid>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <!-- Empty: upcoming -->
+                <!-- Empty state -->
                 <StackPanel HorizontalAlignment="Center" Margin="0,60,0,0"
                             Visibility="{Binding IsUpcomingEmpty, Converter={StaticResource BoolVis}}">
-                    <TextBlock Text="🎬" FontSize="48" HorizontalAlignment="Center"/>
-                    <TextBlock Text="Нет предстоящих билетов" Foreground="{StaticResource TextPrimaryBrush}"
-                               FontSize="17" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,14,0,0"/>
-                    <TextBlock Text="Найдите фильм и забронируйте место" Foreground="{StaticResource TextSecondaryBrush}"
+                    <TextBlock Text="🎬" FontSize="52" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Нет предстоящих билетов"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               FontSize="17" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" Margin="0,16,0,0"/>
+                    <TextBlock Text="Найдите фильм и забронируйте место"
+                               Foreground="{StaticResource TextSecondaryBrush}"
                                FontSize="13" HorizontalAlignment="Center" Margin="0,6,0,0"/>
                 </StackPanel>
             </StackPanel>
