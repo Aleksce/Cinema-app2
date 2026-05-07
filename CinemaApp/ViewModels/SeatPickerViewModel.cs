@@ -60,14 +60,17 @@ public partial class SeatPickerViewModel : BaseViewModel
 
     public SeatPickerViewModel(MainViewModel main) => _main = main;
 
-    // Called by MainViewModel.NavigateTo — fire-and-forget, non-blocking
     public void LoadSession(Session session) => _ = LoadSessionAsync(session);
 
     public async Task LoadSessionAsync(Session session)
     {
-        Session  = session;
-        IsBusy   = true;
+        Session          = session;
+        IsBusy           = true;
         AllSeatsOccupied = false;
+        Rows             = new();
+        HasSelection     = false;
+        TotalPrice       = 0;
+        SelectionSummary = "Выберите места";
 
         try
         {
@@ -91,12 +94,11 @@ public partial class SeatPickerViewModel : BaseViewModel
                     .ToList();
             });
 
-            // EDGE CASE: session has no seats (hall config error)
+            // Edge case: no seats generated (hall misconfigured)
             if (!seats.Any())
             {
-                Rows             = new();
-                SelectionSummary = "Места недоступны для этого сеанса";
                 AllSeatsOccupied = true;
+                SelectionSummary = "Места недоступны для этого сеанса";
                 return;
             }
 
@@ -107,7 +109,7 @@ public partial class SeatPickerViewModel : BaseViewModel
             Rows = new ObservableCollection<SeatRowViewModel>(grouped);
             UpdateSelection();
 
-            // EDGE CASE: all seats occupied
+            // Edge case: every seat is taken
             AllSeatsOccupied = seats.All(s => s.Status == SeatStatus.Occupied);
         }
         finally
@@ -132,9 +134,9 @@ public partial class SeatPickerViewModel : BaseViewModel
             return;
         }
 
-        var seats        = string.Join(", ", selected.Select(s => $"{s.Row}{s.Number}"));
+        var seatNames    = string.Join(", ", selected.Select(s => $"{s.Row}{s.Number}"));
         TotalPrice       = selected.Sum(s => Session!.BasePrice * s.Seat.PriceModifier);
-        SelectionSummary = $"Места: {seats} · {selected.Count} билет(а) · {TotalPrice:N0} ₽";
+        SelectionSummary = $"Места: {seatNames} · {selected.Count} билет(а) · {TotalPrice:N0} ₽";
     }
 
     [RelayCommand]
@@ -165,18 +167,18 @@ public partial class SeatPickerViewModel : BaseViewModel
             return;
         }
 
-        // Guard: session in the past
+        // Guard: session already started
         if (Session != null && Session.StartTime < DateTime.Now)
         {
             System.Windows.MessageBox.Show(
-                "Нельзя купить билет на прошедший сеанс.",
-                "Сеанс завершён",
+                "Нельзя купить билет на прошедший или уже начавшийся сеанс.",
+                "Сеанс недоступен",
                 System.Windows.MessageBoxButton.OK,
                 System.Windows.MessageBoxImage.Warning);
             return;
         }
 
-        // Confirm purchase
+        // Confirm
         var confirm = System.Windows.MessageBox.Show(
             $"Подтвердить покупку?\n\n{SelectionSummary}",
             "Подтверждение оплаты",
@@ -184,31 +186,29 @@ public partial class SeatPickerViewModel : BaseViewModel
             System.Windows.MessageBoxImage.Question);
         if (confirm != System.Windows.MessageBoxResult.Yes) return;
 
-        // Re-check in DB that seats are still free (race condition guard)
+        // Re-check in DB for race conditions
         var seatIds = selected.Select(s => s.Seat.Id).ToList();
         using var db = new CinemaDbContext();
 
-        var recheck = db.Seats.Where(s => seatIds.Contains(s.Id)).ToList();
+        var recheck      = db.Seats.Where(s => seatIds.Contains(s.Id)).ToList();
         var alreadyTaken = recheck.Where(s => s.Status == SeatStatus.Occupied).ToList();
         if (alreadyTaken.Any())
         {
             var names = string.Join(", ", alreadyTaken.Select(s => $"{s.Row}{s.Number}"));
             System.Windows.MessageBox.Show(
-                $"Места {names} уже заняты. Выберите другие.",
+                $"Места {names} только что заняли другие покупатели. Пожалуйста, выберите другие места.",
                 "Места недоступны",
                 System.Windows.MessageBoxButton.OK,
                 System.Windows.MessageBoxImage.Warning);
-            // Reload to reflect current occupancy
             LoadSession(Session!);
             return;
         }
 
         var purchasedAt = DateTime.UtcNow;
-        var tickets     = new List<Ticket>();
 
         foreach (var sv in selected)
         {
-            var ticket = new Ticket
+            db.Tickets.Add(new Ticket
             {
                 UserId      = _main.AccountVm.CurrentUser.Id,
                 SessionId   = Session!.Id,
@@ -216,17 +216,16 @@ public partial class SeatPickerViewModel : BaseViewModel
                 SeatNumber  = sv.Number,
                 SeatType    = sv.Type,
                 Price       = Session.BasePrice * sv.Seat.PriceModifier,
-                QrCode      = GenerateQrPayload(Session, sv),
+                QrCode      = $"CINEMA-{Session.Id}-{sv.Row}{sv.Number}-{Guid.NewGuid():N}"[..28].ToUpper(),
                 Status      = TicketStatus.Active,
                 PurchasedAt = purchasedAt
-            };
-            tickets.Add(ticket);
-            db.Tickets.Add(ticket);
+            });
 
             var seat = db.Seats.Find(sv.Seat.Id);
             if (seat != null) seat.Status = SeatStatus.Occupied;
         }
 
+        // Award loyalty points
         var user = db.Users.Find(_main.AccountVm.CurrentUser.Id);
         if (user != null)
         {
@@ -235,32 +234,18 @@ public partial class SeatPickerViewModel : BaseViewModel
         }
         db.SaveChanges();
 
-        // Reload session so seats refresh in UI
-        db.Entry(Session!).Reference(s => s.Movie).Load();
-        db.Entry(Session!).Reference(s => s.Hall).Load();
-        foreach (var t in tickets)
-        {
-            t.Session = Session!;
-        }
+        var count    = selected.Count;
+        var totalStr = TotalPrice.ToString("N0");
 
         System.Windows.MessageBox.Show(
-            $"✅ Бронирование успешно!\n\nКуплено билетов: {tickets.Count}\nСумма: {TotalPrice:N0} ₽\n\n" +
-            $"Билеты доступны в разделе «Мои билеты».\nТам вы можете скачать PDF-билет.",
+            $"✅ Бронирование успешно!\n\nКуплено билетов: {count}\nСумма: {totalStr} ₽\n\n" +
+            "Билеты доступны в разделе «Мои билеты».\n" +
+            "Там вы можете скачать PDF-чек с QR-кодом.",
             "Оплата прошла",
             System.Windows.MessageBoxButton.OK,
             System.Windows.MessageBoxImage.Information);
 
         _main.NavigateTo(AppPage.MyTickets);
-    }
-
-    /// <summary>
-    /// Generates a meaningful, unique QR payload:
-    /// CINEMA-{sessionId}-{row}{number}-{userId}-{random6}
-    /// </summary>
-    private static string GenerateQrPayload(Session session, SeatViewModel sv)
-    {
-        var rand = Guid.NewGuid().ToString("N")[..6].ToUpper();
-        return $"CINEMA-{session.Id}-{sv.Row}{sv.Number}-{rand}";
     }
 
     [RelayCommand]
