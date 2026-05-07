@@ -67,19 +67,32 @@ public static class DatabaseInitializer
         }
 
         // ── Demo user ────────────────────────────────────────────────
+        const string demoEmail    = "user@cinema.ru";
+        const string demoPassword = "Cinema2024";
+
         if (!context.Users.Any())
         {
             context.Users.Add(new User
             {
-                FullName = "Алексей Морозов",
-                Email = "user@cinema.ru",
-                PasswordHash = HashPassword("password123"),
-                Phone = "+7 (900) 123-45-67",
+                FullName      = "Алексей Морозов",
+                Email         = demoEmail,
+                PasswordHash  = HashPassword(demoPassword),
+                Phone         = "+79001234567",
                 LoyaltyPoints = 1240,
-                LoyaltyLevel = "Синема Клуб",
-                IsAdmin = false
+                LoyaltyLevel  = "Синема Клуб",
+                IsAdmin       = false
             });
             context.SaveChanges();
+        }
+        else
+        {
+            // Migrate old demo password if it was seeded with the legacy hash
+            var demo = context.Users.FirstOrDefault(u => u.Email == demoEmail);
+            if (demo != null && !CheckPassword(demoPassword, demo.PasswordHash))
+            {
+                demo.PasswordHash = HashPassword(demoPassword);
+                context.SaveChanges();
+            }
         }
     }
 
