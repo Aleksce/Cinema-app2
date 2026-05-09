@@ -18,6 +18,8 @@ public class SeatColorConverter : IValueConverter
                 return new SolidColorBrush(Color.FromRgb(0xE5, 0x09, 0x14));
             if (sv.Type == SeatType.VIP)
                 return new SolidColorBrush(Color.FromRgb(0x3A, 0x2A, 0x10));
+            if (sv.Type == SeatType.Sofa)
+                return new SolidColorBrush(Color.FromRgb(0x1A, 0x32, 0x2A));
             return new SolidColorBrush(Color.FromRgb(0x2A, 0x3A, 0x5C));
         }
         return Brushes.Gray;
