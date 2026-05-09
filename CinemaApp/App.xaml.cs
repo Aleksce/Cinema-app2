@@ -32,7 +32,7 @@ public partial class App : Application
                 System.Diagnostics.Debug.WriteLine($"[TMDB] {msg}");
             });
 
-            await Task.Run(() => MovieSyncService.SyncAsync(progress).GetAwaiter().GetResult());
+            await Task.Run(async () => await MovieSyncService.SyncAsync(progress));
 
             // 3. Refresh movies list on UI thread after sync
             if (MainWindow?.DataContext is MainViewModel mainVm)
