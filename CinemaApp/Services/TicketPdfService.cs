@@ -1,5 +1,6 @@
 using CinemaApp.Models;
 using PdfSharpCore.Drawing;
+using PdfSharpCore.Drawing.Layout;
 using PdfSharpCore.Pdf;
 using QRCoder;
 using System.IO;
@@ -228,9 +229,8 @@ public static class TicketPdfService
 
     private static string FormatSeatType(SeatType t) => t switch
     {
-        SeatType.Vip      => "VIP",
-        SeatType.Comfort  => "Комфорт",
-        SeatType.Disabled => "Для МГН",
+        SeatType.VIP      => "VIP",
+        SeatType.Sofa     => "Диван / Комфорт",
         _                 => "Стандарт"
     };
 
