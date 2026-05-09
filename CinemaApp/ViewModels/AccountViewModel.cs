@@ -296,10 +296,14 @@ public partial class AccountViewModel : BaseViewModel
     [RelayCommand]
     private void ToggleRegister()
     {
-        ShowRegister = !ShowRegister;
-        ErrorMessage = string.Empty;
-        PhoneHint    = string.Empty;
-        EmailHint    = string.Empty;
-        PasswordHint = string.Empty;
+        ShowRegister     = !ShowRegister;
+        ErrorMessage     = string.Empty;
+        PhoneHint        = string.Empty;
+        EmailHint        = string.Empty;
+        PasswordHint     = string.Empty;
+        RegisterName     = string.Empty;
+        RegisterEmail    = string.Empty;
+        RegisterPhone    = string.Empty;
+        RegisterPassword = string.Empty;
     }
 }
