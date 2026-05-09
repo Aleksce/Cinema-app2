@@ -98,38 +98,33 @@ public static class DatabaseInitializer
 
     private static void ApplySchemaPatches(CinemaDbContext context)
     {
-        // Movies table patches
+        // Movies table patches — build SQL as plain string to avoid EF1002 interpolation warning.
+        // Values are hard-coded schema identifiers (not user input), so this is safe.
         foreach (var (col, def) in new[]
         {
-            ("TmdbId",      "INT NOT NULL DEFAULT 0"),
-            ("OriginalTitle","NVARCHAR(MAX) NOT NULL DEFAULT ''"),
-            ("TopCastJson",  "NVARCHAR(MAX) NOT NULL DEFAULT '[]'"),
-            ("BackdropUrl",  "NVARCHAR(MAX) NOT NULL DEFAULT ''"),
+            ("TmdbId",       "INT NOT NULL DEFAULT 0"),
+            ("OriginalTitle", "NVARCHAR(MAX) NOT NULL DEFAULT ''"),
+            ("TopCastJson",   "NVARCHAR(MAX) NOT NULL DEFAULT '[]'"),
+            ("BackdropUrl",   "NVARCHAR(MAX) NOT NULL DEFAULT ''"),
         })
         {
-            context.Database.ExecuteSqlRaw($"""
-                IF NOT EXISTS (
-                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
-                    WHERE TABLE_NAME = 'Movies' AND COLUMN_NAME = '{col}'
-                )
-                ALTER TABLE Movies ADD {col} {def};
-                """);
+            var sql = "IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS " +
+                      "WHERE TABLE_NAME = 'Movies' AND COLUMN_NAME = '" + col + "') " +
+                      "ALTER TABLE Movies ADD " + col + " " + def + ";";
+            context.Database.ExecuteSqlRaw(sql);
         }
 
         // Halls table patches
         foreach (var (col, def) in new[]
         {
             ("Address", "NVARCHAR(300) NOT NULL DEFAULT ''"),
-            ("City",    "NVARCHAR(100) NOT NULL DEFAULT 'Москва'"),
+            ("City",    "NVARCHAR(100) NOT NULL DEFAULT N'Москва'"),
         })
         {
-            context.Database.ExecuteSqlRaw($"""
-                IF NOT EXISTS (
-                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
-                    WHERE TABLE_NAME = 'Halls' AND COLUMN_NAME = '{col}'
-                )
-                ALTER TABLE Halls ADD {col} {def};
-                """);
+            var sql = "IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS " +
+                      "WHERE TABLE_NAME = 'Halls' AND COLUMN_NAME = '" + col + "') " +
+                      "ALTER TABLE Halls ADD " + col + " " + def + ";";
+            context.Database.ExecuteSqlRaw(sql);
         }
     }
 
