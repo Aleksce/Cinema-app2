@@ -57,6 +57,16 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Border CornerRadius="16" Margin="0,0,0,16" ClipToBounds="True">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Opacity" Value="1"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsCurrentlyValid}" Value="False">
+                                                <Setter Property="Opacity" Value="0.6"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
                                 <Border.Effect>
                                     <DropShadowEffect Color="#000" BlurRadius="14" Opacity="0.4" ShadowDepth="3"/>
                                 </Border.Effect>
@@ -81,16 +91,34 @@
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <!-- Icon + badge row -->
-                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-                                            <TextBlock Text="{Binding Icon}" FontSize="26"
-                                                       VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                            <Border Background="{StaticResource AccentBrush}" CornerRadius="8"
+                                        <!-- Icon + badge + validity row -->
+                                        <Grid Grid.Row="0" Margin="0,0,0,10">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Icon}" FontSize="26"
+                                                           VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <Border Background="{StaticResource AccentBrush}" CornerRadius="8"
+                                                        Padding="10,4" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Badge}" Foreground="White"
+                                                               FontSize="12" FontWeight="Black"/>
+                                                </Border>
+                                            </StackPanel>
+                                            <!-- Validity badge (right-aligned) -->
+                                            <Border HorizontalAlignment="Right" CornerRadius="8"
                                                     Padding="10,4" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Badge}" Foreground="White"
-                                                           FontSize="12" FontWeight="Black"/>
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#2D7A2D"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsCurrentlyValid}" Value="False">
+                                                                <Setter Property="Background" Value="#3A3A4A"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock Text="{Binding ValidityBadge}" Foreground="White"
+                                                           FontSize="11" FontWeight="SemiBold"/>
                                             </Border>
-                                        </StackPanel>
+                                        </Grid>
 
                                         <!-- Title + subtitle -->
                                         <TextBlock Grid.Row="1" Text="{Binding Title}"
