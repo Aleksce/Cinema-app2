@@ -50,13 +50,58 @@ public partial class SeatPickerViewModel : BaseViewModel
 {
     private readonly MainViewModel _main;
 
+    // ── Promo code definitions ───────────────────────────────────────────────
+    // Validate returns null if the promo is applicable, or an error message.
+    private static readonly Dictionary<string, (int Percent, string Desc, Func<Session, int, string?> Validate)>
+        PromoCodes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["HAPPY30"]    = (30, "−30% на утренний сеанс",
+            (s, _) => s.StartTime.Hour < 12
+                ? null
+                : "Действует только на сеансы, начинающиеся до 12:00"),
+
+        ["BIRTHDAY50"] = (50, "−50% день рождения",
+            (s, _) => null),   // self-certified — always accepted
+
+        ["FAMILY20"]   = (20, "−20% семейный поход",
+            (s, cnt) => cnt >= 4
+                ? null
+                : $"Нужно минимум 4 билета (выбрано {cnt})"),
+
+        ["IMAX2D"]     = (33, "IMAX по цене 2D",
+            (s, _) => s.Format == "IMAX"
+                ? (DateTime.Now.DayOfWeek == DayOfWeek.Tuesday
+                    ? null
+                    : "Действует только по вторникам")
+                : "Действует только на IMAX-сеансы"),
+
+        ["STUDENT25"]  = (25, "−25% студенческая скидка",
+            (s, _) => DateTime.Now.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday)
+                ? null
+                : "Действует только в будние дни (Пн–Пт)"),
+
+        ["NIGHT40"]    = (40, "−40% ночной сеанс",
+            (s, _) => s.StartTime.Hour >= 22
+                ? null
+                : "Действует только на сеансы после 22:00"),
+    };
+
+    // ── State ────────────────────────────────────────────────────────────────
     [ObservableProperty] private Session? _session;
     [ObservableProperty] private ObservableCollection<SeatRowViewModel> _rows = new();
     [ObservableProperty] private string  _selectionSummary = "Выберите места";
     [ObservableProperty] private decimal _totalPrice;
+    [ObservableProperty] private decimal _finalPrice;
     [ObservableProperty] private int     _selectedCount;
     [ObservableProperty] private bool    _hasSelection;
     [ObservableProperty] private bool    _allSeatsOccupied;
+
+    // ── Promo code state ─────────────────────────────────────────────────────
+    [ObservableProperty] private string _promoCodeInput  = string.Empty;
+    [ObservableProperty] private string _promoStatus     = string.Empty;
+    [ObservableProperty] private bool   _hasDiscount;
+    [ObservableProperty] private int    _discountPercent;
+    private string _appliedPromoCode = string.Empty;
 
     public SeatPickerViewModel(MainViewModel main) => _main = main;
 
@@ -70,7 +115,15 @@ public partial class SeatPickerViewModel : BaseViewModel
         Rows             = new();
         HasSelection     = false;
         TotalPrice       = 0;
+        FinalPrice       = 0;
         SelectionSummary = "Выберите места";
+
+        // Reset promo on new session
+        PromoCodeInput   = string.Empty;
+        PromoStatus      = string.Empty;
+        HasDiscount      = false;
+        DiscountPercent  = 0;
+        _appliedPromoCode = string.Empty;
 
         try
         {
@@ -94,7 +147,6 @@ public partial class SeatPickerViewModel : BaseViewModel
                     .ToList();
             });
 
-            // Edge case: no seats generated (hall misconfigured)
             if (!seats.Any())
             {
                 AllSeatsOccupied = true;
@@ -109,7 +161,6 @@ public partial class SeatPickerViewModel : BaseViewModel
             Rows = new ObservableCollection<SeatRowViewModel>(grouped);
             UpdateSelection();
 
-            // Edge case: every seat is taken
             AllSeatsOccupied = seats.All(s => s.Status == SeatStatus.Occupied);
         }
         finally
@@ -131,18 +182,85 @@ public partial class SeatPickerViewModel : BaseViewModel
         {
             SelectionSummary = "Выберите места";
             TotalPrice       = 0;
+            FinalPrice       = 0;
             return;
         }
 
-        var seatNames    = string.Join(", ", selected.Select(s => $"{s.Row}{s.Number}"));
-        TotalPrice       = selected.Sum(s => Session!.BasePrice * s.Seat.PriceModifier);
-        SelectionSummary = $"Места: {seatNames} · {selected.Count} билет(а) · {TotalPrice:N0} ₽";
+        var seatNames = string.Join(", ", selected.Select(s => $"{s.Row}{s.Number}"));
+        TotalPrice    = selected.Sum(s => Session!.BasePrice * s.Seat.PriceModifier);
+
+        if (HasDiscount && DiscountPercent > 0)
+        {
+            FinalPrice = Math.Floor(TotalPrice * (100 - DiscountPercent) / 100m);
+            SelectionSummary = $"Места: {seatNames} · {selected.Count} билет(а)";
+        }
+        else
+        {
+            FinalPrice = TotalPrice;
+            SelectionSummary = $"Места: {seatNames} · {selected.Count} билет(а)";
+        }
+
+        // Re-validate FAMILY20 when seat count changes
+        if (HasDiscount && !string.IsNullOrEmpty(_appliedPromoCode)
+            && PromoCodes.TryGetValue(_appliedPromoCode, out var promo))
+        {
+            var recheck = promo.Validate(Session!, SelectedCount);
+            if (recheck != null)
+            {
+                HasDiscount     = false;
+                DiscountPercent = 0;
+                FinalPrice      = TotalPrice;
+                PromoStatus     = $"❌ {recheck}";
+            }
+        }
+    }
+
+    [RelayCommand]
+    private void ApplyPromoCode()
+    {
+        var code = PromoCodeInput?.Trim().ToUpper() ?? "";
+
+        if (string.IsNullOrEmpty(code))
+        {
+            PromoStatus = "Введите промокод";
+            return;
+        }
+
+        if (!PromoCodes.TryGetValue(code, out var promo))
+        {
+            PromoStatus     = "❌ Промокод не найден";
+            HasDiscount     = false;
+            DiscountPercent = 0;
+            FinalPrice      = TotalPrice;
+            return;
+        }
+
+        if (Session == null)
+        {
+            PromoStatus = "❌ Сеанс не выбран";
+            return;
+        }
+
+        var error = promo.Validate(Session, SelectedCount);
+        if (error != null)
+        {
+            PromoStatus     = $"❌ {error}";
+            HasDiscount     = false;
+            DiscountPercent = 0;
+            FinalPrice      = TotalPrice;
+            return;
+        }
+
+        DiscountPercent   = promo.Percent;
+        HasDiscount       = true;
+        _appliedPromoCode = code;
+        PromoStatus       = $"✓ {promo.Desc} применён";
+        UpdateSelection();
     }
 
     [RelayCommand]
     private void Purchase()
     {
-        // Guard: not logged in
         if (_main.AccountVm.CurrentUser == null)
         {
             System.Windows.MessageBox.Show(
@@ -156,7 +274,6 @@ public partial class SeatPickerViewModel : BaseViewModel
 
         var selected = Rows.SelectMany(r => r.Seats).Where(s => s.IsSelected).ToList();
 
-        // Guard: nothing selected
         if (!selected.Any())
         {
             System.Windows.MessageBox.Show(
@@ -167,7 +284,6 @@ public partial class SeatPickerViewModel : BaseViewModel
             return;
         }
 
-        // Guard: session already started
         if (Session != null && Session.StartTime < DateTime.Now)
         {
             System.Windows.MessageBox.Show(
@@ -178,15 +294,19 @@ public partial class SeatPickerViewModel : BaseViewModel
             return;
         }
 
-        // Confirm
+        var payAmount   = FinalPrice;
+        var discountLine = HasDiscount
+            ? $"\nСкидка {DiscountPercent}%: −{TotalPrice - FinalPrice:N0} ₽"
+            : string.Empty;
+
         var confirm = System.Windows.MessageBox.Show(
-            $"Подтвердить покупку?\n\n{SelectionSummary}",
+            $"Подтвердить покупку?\n\nМеста: {string.Join(", ", selected.Select(s => $"{s.Row}{s.Number}"))}" +
+            $"\nБез скидки: {TotalPrice:N0} ₽{discountLine}\n\nИтого к оплате: {payAmount:N0} ₽",
             "Подтверждение оплаты",
             System.Windows.MessageBoxButton.YesNo,
             System.Windows.MessageBoxImage.Question);
         if (confirm != System.Windows.MessageBoxResult.Yes) return;
 
-        // Re-check in DB for race conditions
         var seatIds = selected.Select(s => s.Seat.Id).ToList();
         using var db = new CinemaDbContext();
 
@@ -204,7 +324,9 @@ public partial class SeatPickerViewModel : BaseViewModel
             return;
         }
 
-        var purchasedAt = DateTime.UtcNow;
+        var purchasedAt  = DateTime.UtcNow;
+        // Price per ticket with discount applied proportionally
+        var priceMultiplier = HasDiscount ? (100 - DiscountPercent) / 100m : 1m;
 
         foreach (var sv in selected)
         {
@@ -215,7 +337,7 @@ public partial class SeatPickerViewModel : BaseViewModel
                 SeatRow     = sv.Row,
                 SeatNumber  = sv.Number,
                 SeatType    = sv.Type,
-                Price       = Session.BasePrice * sv.Seat.PriceModifier,
+                Price       = Math.Floor(Session.BasePrice * sv.Seat.PriceModifier * priceMultiplier),
                 QrCode      = $"CINEMA-{Session.Id}-{sv.Row}{sv.Number}-{Guid.NewGuid():N}"[..28].ToUpper(),
                 Status      = TicketStatus.Active,
                 PurchasedAt = purchasedAt
@@ -225,20 +347,17 @@ public partial class SeatPickerViewModel : BaseViewModel
             if (seat != null) seat.Status = SeatStatus.Occupied;
         }
 
-        // Award loyalty points
+        // Award loyalty points based on amount paid
         var user = db.Users.Find(_main.AccountVm.CurrentUser.Id);
         if (user != null)
         {
-            user.LoyaltyPoints += (int)(TotalPrice / 10);
+            user.LoyaltyPoints += (int)(payAmount / 10);
             _main.AccountVm.CurrentUser.LoyaltyPoints = user.LoyaltyPoints;
         }
         db.SaveChanges();
 
-        var count    = selected.Count;
-        var totalStr = TotalPrice.ToString("N0");
-
         System.Windows.MessageBox.Show(
-            $"✅ Бронирование успешно!\n\nКуплено билетов: {count}\nСумма: {totalStr} ₽\n\n" +
+            $"✅ Бронирование успешно!\n\nКуплено билетов: {selected.Count}\nСумма: {payAmount:N0} ₽\n\n" +
             "Билеты доступны в разделе «Мои билеты».\n" +
             "Там вы можете скачать PDF-чек с QR-кодом.",
             "Оплата прошла",
