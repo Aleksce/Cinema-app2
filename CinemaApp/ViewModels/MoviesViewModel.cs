@@ -19,8 +19,9 @@ public partial class MoviesViewModel : BaseViewModel
 
     public List<string> Genres { get; } = new()
     {
-        "Все", "Боевик", "Драма", "Фантастика", "Ужасы",
-        "Мультфильм", "Приключения", "Комедия"
+        "Все", "Боевик", "Драма", "Ужасы", "Триллер",
+        "Научная фантастика", "Фэнтези", "Комедия",
+        "Анимация", "Приключения", "Мелодрама", "Криминал"
     };
 
     public MoviesViewModel(MainViewModel main) => _main = main;
@@ -52,7 +53,6 @@ public partial class MoviesViewModel : BaseViewModel
 
     private void ApplyFilter()
     {
-        // Guard: very long search string — cap at 100 chars to avoid performance issues
         var query = SearchText.Length > 100 ? SearchText[..100] : SearchText;
 
         var filtered = Movies.AsEnumerable();
@@ -68,7 +68,8 @@ public partial class MoviesViewModel : BaseViewModel
         }
 
         if (SelectedGenre != "Все")
-            filtered = filtered.Where(m => m.Genre.Contains(SelectedGenre));
+            filtered = filtered.Where(m =>
+                m.Genre.Contains(SelectedGenre, StringComparison.OrdinalIgnoreCase));
 
         FilteredMovies = new ObservableCollection<Movie>(filtered);
         IsEmpty        = !FilteredMovies.Any();
