@@ -9,6 +9,42 @@ public static class MovieSyncService
     private static readonly string[] SessionTimes = { "10:00", "13:00", "16:00", "19:00", "21:30" };
     private static readonly Random Rng = new(Environment.TickCount);
 
+    // TMDB genre ID → Russian name mapping (used when Details call fails)
+    private static readonly Dictionary<int, string> GenreMap = new()
+    {
+        [28]    = "Боевик",
+        [12]    = "Приключения",
+        [16]    = "Анимация",
+        [35]    = "Комедия",
+        [80]    = "Криминал",
+        [99]    = "Документальный",
+        [18]    = "Драма",
+        [10751] = "Семейный",
+        [14]    = "Фэнтези",
+        [36]    = "История",
+        [27]    = "Ужасы",
+        [10402] = "Музыка",
+        [9648]  = "Детектив",
+        [10749] = "Мелодрама",
+        [878]   = "Научная фантастика",
+        [10770] = "Телефильм",
+        [53]    = "Триллер",
+        [10752] = "Военный",
+        [37]    = "Вестерн",
+    };
+
+    private static string BuildGenre(TmdbMovieDetails? details, TmdbMovieItem item)
+    {
+        if (details?.Genres != null && details.Genres.Count > 0)
+            return string.Join(", ", details.Genres.Take(3).Select(g => g.Name));
+
+        var fromIds = item.GenreIds.Take(3)
+            .Select(id => GenreMap.GetValueOrDefault(id, ""))
+            .Where(n => !string.IsNullOrEmpty(n))
+            .ToList();
+        return fromIds.Count > 0 ? string.Join(", ", fromIds) : "Разное";
+    }
+
     public static async Task SyncAsync(IProgress<string>? progress = null)
     {
         progress?.Report("Подключение к TMDB...");
@@ -53,9 +89,7 @@ public static class MovieSyncService
                     Title           = item.Title,
                     OriginalTitle   = item.OriginalTitle,
                     Description     = details?.Overview ?? item.Overview,
-                    Genre           = details != null
-                                        ? string.Join(", ", details.Genres.Take(3).Select(g => g.Name))
-                                        : "Разное",
+                    Genre           = BuildGenre(details, item),
                     Director        = details != null ? tmdb.GetDirector(details) ?? "" : "",
                     Cast            = details != null ? tmdb.GetCast(details) : "",
                     TopCastJson     = details != null ? tmdb.GetTopCastJson(details) : "[]",
@@ -80,6 +114,11 @@ public static class MovieSyncService
                 existing.IsActive   = true;
                 if (item.PosterPath != null)
                     existing.PosterUrl = TmdbService.PosterBase + item.PosterPath;
+
+                // Repair Genre = "Разное" or empty using the fallback mapping
+                if (string.IsNullOrEmpty(existing.Genre) || existing.Genre == "Разное")
+                    existing.Genre = BuildGenre(details, item);
+
                 if (details != null)
                 {
                     if (string.IsNullOrEmpty(existing.TrailerUrl))
