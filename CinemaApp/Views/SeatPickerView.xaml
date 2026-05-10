@@ -7,10 +7,6 @@
     <UserControl.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolVis"/>
 
-        <!--
-            Seat style — uses the fully-qualified attached-property path for the bounce animation
-            so WPF can resolve it without knowing the concrete transform type at parse time.
-        -->
         <Style x:Key="SeatStyle" TargetType="Border">
             <Setter Property="CornerRadius" Value="5"/>
             <Setter Property="Width"        Value="28"/>
@@ -31,10 +27,10 @@
                     </MultiDataTrigger.Conditions>
                     <Setter Property="Background" Value="#1A3820"/>
                 </MultiDataTrigger>
-                <!-- Comfort/Sofa seat -->
+                <!-- Sofa seat (was incorrectly "Comfort") -->
                 <MultiDataTrigger>
                     <MultiDataTrigger.Conditions>
-                        <Condition Binding="{Binding Type}"       Value="Comfort"/>
+                        <Condition Binding="{Binding Type}"       Value="Sofa"/>
                         <Condition Binding="{Binding Status}"     Value="Available"/>
                         <Condition Binding="{Binding IsSelected}" Value="False"/>
                     </MultiDataTrigger.Conditions>
@@ -62,6 +58,13 @@
                     </DataTrigger.EnterActions>
                 </DataTrigger>
             </Style.Triggers>
+        </Style>
+
+        <Style x:Key="PromoInputStyle" TargetType="TextBox" BasedOn="{StaticResource DarkTextBoxStyle}">
+            <Setter Property="Padding"   Value="10,8"/>
+            <Setter Property="FontSize"  Value="13"/>
+            <Setter Property="MaxLength" Value="12"/>
+            <Setter Property="CharacterCasing" Value="Upper"/>
         </Style>
     </UserControl.Resources>
 
@@ -230,30 +233,113 @@
             </ScrollViewer>
         </Grid>
 
-        <!-- Bottom summary bar -->
+        <!-- Bottom panel: promo code + summary + pay -->
         <Border Grid.Row="3" Background="{StaticResource SurfaceBrush}"
                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
                 Padding="20,14">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="{Binding SelectionSummary}"
-                               Foreground="{StaticResource TextPrimaryBrush}"
-                               FontSize="14" FontWeight="SemiBold"/>
-                    <TextBlock Foreground="{StaticResource AccentBrush}"
-                               FontSize="20" FontWeight="Bold"
-                               Visibility="{Binding HasSelection, Converter={StaticResource BoolVis}}">
-                        <Run Text="{Binding TotalPrice, StringFormat=N0}"/><Run Text=" ₽"/>
-                    </TextBlock>
-                </StackPanel>
-                <Button Grid.Column="1" Style="{StaticResource AccentButtonStyle}"
-                        Content="Оплатить" Width="140"
-                        Command="{Binding PurchaseCommand}"
-                        IsEnabled="{Binding HasSelection}"/>
-            </Grid>
+            <StackPanel>
+
+                <!-- Promo code row -->
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0"
+                             Text="{Binding PromoCodeInput, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource PromoInputStyle}"
+                             VerticalAlignment="Center">
+                        <TextBox.Resources>
+                            <Style TargetType="TextBox" BasedOn="{StaticResource PromoInputStyle}">
+                                <Style.Triggers>
+                                    <Trigger Property="Text" Value="">
+                                        <Setter Property="Background">
+                                            <Setter.Value>
+                                                <VisualBrush Stretch="None" AlignmentX="Left">
+                                                    <VisualBrush.Visual>
+                                                        <TextBlock Text="  Введите промокод..."
+                                                                   Foreground="#556680" FontSize="13"
+                                                                   Margin="10,8"/>
+                                                    </VisualBrush.Visual>
+                                                </VisualBrush>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Resources>
+                    </TextBox>
+                    <Button Grid.Column="1" Margin="8,0,0,0"
+                            Style="{StaticResource GhostButtonStyle}"
+                            Content="Применить" Padding="14,8"
+                            Command="{Binding ApplyPromoCodeCommand}"
+                            VerticalAlignment="Center"/>
+                    <!-- Clear discount button -->
+                    <Button Grid.Column="2" Margin="6,0,0,0"
+                            Padding="8,8" VerticalAlignment="Center"
+                            Background="Transparent" BorderThickness="0"
+                            Cursor="Hand"
+                            Visibility="{Binding HasDiscount, Converter={StaticResource BoolVis}}"
+                            ToolTip="Убрать скидку">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="Transparent" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                    <TextBlock Text="✕" Foreground="#9090A0" FontSize="12"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <Button.Command>
+                            <Binding Path="ApplyPromoCodeCommand"/>
+                        </Button.Command>
+                    </Button>
+                </Grid>
+
+                <!-- Promo status message -->
+                <TextBlock Margin="0,0,0,8" FontSize="12"
+                           Visibility="{Binding PromoStatus, Converter={StaticResource BoolVis}}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#4CAF50"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding PromoStatus[0]}" Value="❌">
+                                    <Setter Property="Foreground" Value="#FF6060"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                    <Run Text="{Binding PromoStatus}"/>
+                </TextBlock>
+
+                <!-- Summary + price + pay -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding SelectionSummary}"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="14" FontWeight="SemiBold"/>
+                        <!-- Original price (strikethrough when discount active) -->
+                        <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="13" TextDecorations="Strikethrough"
+                                   Visibility="{Binding HasDiscount, Converter={StaticResource BoolVis}}">
+                            <Run Text="{Binding TotalPrice, StringFormat=N0}"/><Run Text=" ₽"/>
+                        </TextBlock>
+                        <!-- Final price -->
+                        <TextBlock Foreground="{StaticResource AccentBrush}"
+                                   FontSize="20" FontWeight="Bold"
+                                   Visibility="{Binding HasSelection, Converter={StaticResource BoolVis}}">
+                            <Run Text="{Binding FinalPrice, StringFormat=N0}"/><Run Text=" ₽"/>
+                        </TextBlock>
+                    </StackPanel>
+                    <Button Grid.Column="1" Style="{StaticResource AccentButtonStyle}"
+                            Content="Оплатить" Width="140"
+                            Command="{Binding PurchaseCommand}"
+                            IsEnabled="{Binding HasSelection}"/>
+                </Grid>
+            </StackPanel>
         </Border>
     </Grid>
 </UserControl>
